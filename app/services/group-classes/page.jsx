@@ -1,96 +1,120 @@
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Clock, UsersRound } from "lucide-react"
-import { GroupClasses, timeSlots } from "@/constant/services"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clock, UsersRound } from "lucide-react";
+import { GroupClasses, timeSlots } from "@/constant/services";
 
 export default function GroupClassesPage() {
   return (
-     <section className="screen flex flex-col justify-center items-center gap-8">
-      <div className="space-y-8 w-auto">
-        <div className="text-center place-items-center space-y-2">
-          <h1 className="font-russo text-3xl">Get Your Alpha Fitness KeyCard</h1>
-          <p className="text-base leading-relaxed max-w-prose font-arone opacity-70">Required for all services. Choose your keycard option below.</p>
+    <section className="screen px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex flex-col justify-center items-center gap-6 sm:gap-8 lg:gap-12">
+      <div className="space-y-6 sm:space-y-8 w-full sm:w-auto">
+        {/* Header */}
+        <div className="text-center place-items-center w-full space-y-2 px-2">
+          <h1 className="font-russo text-[20px] sm:text-[24px] lg:text-3xl leading-snug">
+            Get Your Alpha Fitness KeyCard
+          </h1>
+          <p className="text-sm sm:text-base leading-relaxed max-w-prose font-arone opacity-70">
+            Required for all services. Choose your keycard option below.
+          </p>
         </div>
+
         {/* KEY CARDS */}
-        <div className="place-content-center">
-          <Card className="relative justify-between w-auto p-5 overflow-hidden gradient-border">
-        {/* Card Icon */}
+        <div className="place-content-center w-full">
+          <Card className="relative justify-between w-full sm:w-auto p-4 sm:p-5 overflow-hidden gradient-border">
+            {/* Card Icon */}
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-3 rounded-lg w-fit">
                 <UsersRound className="h-8 w-8 text-secondary" />
               </div>
-              
-              <CardTitle className="text-2xl  font-russo ">
+              <CardTitle className="text-xl sm:text-2xl font-russo">
                 Group Classes
               </CardTitle>
-              
-              <CardDescription className="hidden">
-                Get your Alpha Fitness keycard without any services loaded
-              </CardDescription>
             </CardHeader>
 
             <CardContent className="text-center space-y-6">
               {/* Price */}
               <div className="space-y-1 font-arone">
-                <div className="text-4xl font-russo text-secondary">₱3,500</div>
-                  <p className="text-sm text-gray-500">1 Month Unlimited</p>
-                  <p className="text-l font-bold text-black space-y-4">Available Classes:</p>
+                <div className="text-3xl sm:text-4xl font-russo text-secondary">
+                  ₱3,500
+                </div>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  1 Month Unlimited
+                </p>
+                <p className="text-sm sm:text-base font-bold text-black">
+                  Available Classes:
+                </p>
               </div>
 
-            <div className="flex w-full justify-center gap-4 ">
-             {GroupClasses.map((className) => (
-                <Button
-                  key={className}
-                  variant="outline"
-                  className="bg-white gradient-border"
-                >
-                  {className}
-                </Button>
-              ))}
-            </div>
+              {/* Class buttons */}
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
+                {GroupClasses.map((className) => (
+                  <Button
+                    key={className}
+                    variant="outline"
+                    className="bg-white gradient-border px-3 py-1 text-xs sm:text-sm"
+                  >
+                    {className}
+                  </Button>
+                ))}
+              </div>
             </CardContent>
-            <CardFooter className="pt-4">
-              <div className="flex justify-between items-center w-full">
-                {/* Time openers */}
-                <div className="flex-1 w-full">
-                  <div className="flex gap-4">
-                    <div className="flex flex-col gap-2 items-center">
-                        <div className="flex gap-2 items-center">
-                          <Clock className="h-5 w-5" />
-                          <span className="font-arone font-bold">Monday - Saturday:</span>
-                        </div>
 
-                        {/* time */}
-                          <ul>
-                            {timeSlots.map((time, index) => (
-                              <li key={index}
-                                  className="text-arone opacity-70"
-                              >{time}</li>
-                            ))}
-                          </ul>
+            {/* Footer */}
+            <CardFooter className="pt-4 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+              {/* Time openers */}
+              <div className="w-full flex justify-center items-center lg:flex lg:justify-start ">
+                <div className="flex  gap-3 sm:gap-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-2 items-center">
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-arone font-bold text-sm sm:text-base">
+                        Monday - Saturday:
+                      </span>
                     </div>
+                    <ul className="pl-6 sm:pl-0">
+                      {timeSlots.map((time, index) => (
+                        <li
+                          key={index}
+                          className="text-arone opacity-70 text-xs sm:text-sm"
+                        >
+                          {time}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <Clock className="h-5 w-5"/>
-                        <span className="font-arone font-bold">Sunday:</span>
-                      </div>
-                      <span>By Appointment</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-2 items-center">
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-arone font-bold text-sm sm:text-base">
+                        Sunday:
+                      </span>
                     </div>
+                    <span className="text-xs sm:text-sm">By Appointment</span>
                   </div>
                 </div>
-                  {/* left btn */}
-                  <div className="flex-1 w-fulll">
-                    <Button  variant={'secondary'} className={'text-white w-full'}>Join Group Classes</Button>
-                  </div>
               </div>
-             
+
+              {/* Button */}
+              <div className="w-full sm:flex-1">
+                <Button
+                  variant={"secondary"}
+                  className="text-white w-full text-sm sm:text-base"
+                >
+                  Join Group Classes
+                </Button>
+              </div>
             </CardFooter>
           </Card>
-
-
         </div>
       </div>
     </section>
-  )
+  );
 }

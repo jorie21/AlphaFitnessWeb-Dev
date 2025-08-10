@@ -195,7 +195,7 @@
               linear-gradient(45deg, #0A66C2, #004182) border-box;
 }
 
-
-
-
+.swiper-pagination {
+  @apply mt-3; /* Adds margin between the cards and dots */
+}
 

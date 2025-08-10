@@ -17,15 +17,16 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
- return (
-    <html lang="en" className="w-full">
+  return (
+    <html lang="en" className="w-full overflow-x-hidden">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased w-screen`}
-      >
-        <Topbar/>
-        <main className="w-full">
-          {children}
-        </main>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full overflow-x-hidden`}>
+
+        <div className="pt-20">
+          <Topbar />
+        </div>
+
+        <main className="w-full">{children}</main>
       </body>
     </html>
   );

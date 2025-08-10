@@ -9,8 +9,8 @@ import Autoplay from "embla-carousel-autoplay";
 
 export default function TestimonialSection() {
   return (
-    <section className="w-full py-12 md:py-16 lg:py-20 bg-gradient-to-b from-[#0F2027] via-[#1E3A46] to-[#2C5364] text-white">
-      <div className="container px-4 md:px-6 max-w-6xl mx-auto">
+    <section className="w-full py-12 md:py-16 lg:py-10 bg-gradient-to-b from-[#0F2027] via-[#1E3A46] to-[#2C5364] text-white">
+      <div className="container px-4 md:px-6  mx-auto">
         <div className='flex flex-col items-center justify-center gap-6 text-center mb-12'>
           <div className='flex flex-row items-center justify-center gap-3'>
             <Star size={25} color="#FFA807" fill="#FFA807" />
@@ -26,7 +26,7 @@ export default function TestimonialSection() {
           }}
           plugins={[
             Autoplay({
-              delay: 4000,
+              delay: 2000,
               stopOnInteraction: true, 
               stopOnMouseEnter: true, 
             }),
@@ -70,8 +70,8 @@ export default function TestimonialSection() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="hidden sm:flex" />
-          <CarouselNext className="hidden sm:flex" />
+          <CarouselPrevious className="hidden sm:flex text-white bg-transparent" />
+          <CarouselNext className="hidden sm:flex text-white bg-transparent" />
         </Carousel>
       </div>
     </section>

@@ -32,7 +32,7 @@ export default function Topbar() {
   };
 
   return (
-    <header className="bg-white shadow-m sticky top-0 left-0 w-full z-50">
+    <header className="bg-white shadow-m fixed top-0 left-0 w-full z-50">
       <div className="flex items-center justify-between p-4 text-black screen">
         {/* Logo and Title */}
         <div className="flex items-center space-x-3">
@@ -77,8 +77,8 @@ export default function Topbar() {
 
           {/* Drawer Content */}
           <SheetContent
-            side="right"
-            className="text-white rounded-l-2xl shadow-2xl overflow-y-auto"
+            side="left"
+            className="text-white  shadow-2xl overflow-y-auto w-[300px] h-full"
             style={{
               background:
                 "linear-gradient(145deg, #0F2027 0%, #2C5364 50%, #4E1B1B 100%)",
@@ -100,26 +100,29 @@ export default function Topbar() {
                   className="group relative font-arone tracking-wide"
                 >
                   {menu.title}
-                  <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary transition-all group-hover:w-full"></span>
                 </Link>
               ))}
             </nav>
 
             {/* Call to Actions */}
-            <div className="px-8 pb-8 mt-auto">
+            <div className="px-8 ">
               <div className="flex flex-col gap-3">
-                <Button
-                  variant="outlineSecondary"
-                  className="w-full font-arone text-black hover:scale-[1.02] transition-transform"
-                >
-                  Sign up
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full text-white font-arone hover:scale-[1.02] transition-transform"
-                >
-                  Join Now
-                </Button>
+                <LoginModal>
+                  <Button
+                    variant="outlineSecondary"
+                    className="w-full font-arone text-secondary hover:scale-[1.02] transition-transform"
+                  >
+                    Sign up
+                  </Button>
+                </LoginModal>
+                <RegistrationModal>
+                  <Button
+                    variant="secondary"
+                    className="w-full text-white font-arone hover:scale-[1.02] transition-transform"
+                  >
+                    Join Now
+                  </Button>
+                </RegistrationModal>
               </div>
             </div>
 
@@ -136,4 +139,3 @@ export default function Topbar() {
     </header>
   );
 }
-
