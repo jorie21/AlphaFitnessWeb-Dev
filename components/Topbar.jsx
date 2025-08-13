@@ -32,7 +32,7 @@ export default function Topbar() {
   };
 
   return (
-    <header className="bg-white shadow-m fixed top-0 left-0 w-full z-50">
+    <header className="bg-white fixed top-0 left-0 w-full z-50 shadow-[0_4px_10px_rgba(0,0,0,0.15)]">
       <div className="flex items-center justify-between p-4 text-black screen">
         {/* Logo and Title */}
         <div className="flex items-center space-x-3">
