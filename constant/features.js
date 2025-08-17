@@ -1,26 +1,33 @@
  import { Dumbbell, UsersRound, CheckCircle, Heart, Sauna, Users, BoxingGlove } from "lucide-react";
- export const features = [
-    {
-      icon: <Dumbbell className="text-red-500 w-6 h-6 opacity-80"/>,
-      title: "Expert Trainers",
-      desc: "Certified professionals with years of experience in fitness and nutrition.",
-    },
-    {
-      icon: <UsersRound className="text-blue-500 w-6 h-6 opacity-80"/>,
-      title: "Personalized Programs",
-      desc: "Customized workout and nutrition plans tailored to your specific goals.",
-    },
-    {
-      icon: <Heart className="text-green-500 w-6 h-6 opacity-80"/>,
-      title: "Community Support",
-      desc: "Join a motivating community that celebrates every milestone with you.",
-    },
-    {
-      icon: <CheckCircle className="text-purple-500 w-6 h-6 opacity-80"/>,
-      title: "Results Guaranteed",
-      desc: "Our proven methods and dedicated support ensure you achieve your goals.",
-    },
-  ];
+
+export const features = [
+  {
+    icon: Dumbbell,                 // ← component ref (not <Dumbbell />)
+    color: "text-red-500",
+    title: "Expert Trainers",
+    desc: "Certified professionals with years of experience in fitness and nutrition.",
+  },
+  {
+    icon: UsersRound,
+    color: "text-blue-500",
+    title: "Personalized Programs",
+    desc: "Customized workout and nutrition plans tailored to your specific goals.",
+  },
+  {
+    icon: Heart,
+    color: "text-green-500",
+    title: "Community Support",
+    desc: "Join a motivating community that celebrates every milestone with you.",
+  },
+  {
+    icon: CheckCircle,
+    color: "text-purple-500",
+    title: "Results Guaranteed",
+    desc: "Our proven methods and dedicated support ensure you achieve your goals.",
+  },
+];
+
+
   export const stats = [
     { value: "2019", label: "Established", color: "text-secondary" },
     { value: "15+", label: "Expert Trainers", color: "text-Blue" },

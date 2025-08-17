@@ -30,7 +30,7 @@ export default function AnnouncementSection() {
           className="flex items-center gap-4"
           initial = {{opacity: 0, x:-100}} //slide from the left
           whileInView={{ opacity: 1, x: 0 }} 
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={{ duration: 2, ease: "easeOut" }}
           viewport={{ once: false, amount: 0.2 }}
         > 
           <Sparkles className="lg:h-[50px] lg:w-[50px] h-6 w-6 text-secondary animate-bounce" />
