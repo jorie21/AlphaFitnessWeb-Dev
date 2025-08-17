@@ -1,7 +1,6 @@
 import React from "react";
 import { GiAchievement } from "react-icons/gi";
 import { loyaltyStatus } from "@/constant/profile";
-import { Target } from "lucide-react";
 
 export default function LoyaltyStatus() {
   return (
@@ -57,13 +56,32 @@ export default function LoyaltyStatus() {
 
         {/* Progress bar */}
         <div
-          className="w-full rounded-lg border-2 border-[#FFA807] bg-[rgba(255,215,0,0.3)]"
+          className="w-full rounded-lg border-2 p-4 border-[#FFA807] bg-[rgba(255,215,0,0.3)]"
           style={{
             boxShadow: "inset 0px 4px 90px rgba(0, 0, 0, 0.25)",
           }}
         >
-           <Target className="w-5 h-5 text-purple-500" />
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between">
+              <div className="flex flex-col">
+                <span className="font-russo text-lg">Progress to Gold</span>
+                <span className="font-arone text-sm opacity-70">
+                  4 out of 10 purchases
+                </span>
+              </div>
 
+              <div className="flex flex-col">
+                <span className="font-russo text-lg text-right">6</span>
+                <span className="text-sm font-arone">Purchases Left</span>
+              </div>
+            </div>
+
+            <div className="w-full bg-white/60 rounded-full h-3">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full w-1/2"></div>
+            </div>
+
+            <span className="font-arone text-sm">Only <span className="text-secondary">6 more purchases</span> until you unluck Gold benefits!</span>
+          </div>
         </div>
       </div>
     </section>

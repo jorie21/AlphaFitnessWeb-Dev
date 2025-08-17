@@ -11,7 +11,7 @@ import { Checkbox } from '../ui/checkbox'
 export default function RegistrationModal() {
   const [showCreatePass, setShowCreatePass] = useState(false)
   const [showConfirmPass, setShowConfirmPass] = useState(false)
-
+  
   return (
     <Dialog>
       <DialogTrigger asChild>
