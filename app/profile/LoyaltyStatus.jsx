@@ -4,21 +4,21 @@ import { loyaltyStatus } from "@/constant/profile";
 
 export default function LoyaltyStatus() {
   return (
-    <section className="shadow-xl rounded-lg flex flex-col p-8 w-full bg-white">
+    <section className="shadow-xl rounded-lg flex flex-col p-6 sm:p-8 w-full bg-white">
       <div className="flex flex-col gap-8">
         {/* Header */}
         <div className="flex gap-2 items-center">
-          <GiAchievement className="h-12 w-10 text-[#FFA807]" />
+          <GiAchievement className="h-10 w-10 sm:h-12 sm:w-12 text-[#FFA807]" />
           <div>
-            <h1 className="font-russo text-2xl">Loyalty Status</h1>
-            <span className="text-black/70 font-aron text-sm">
+            <h1 className="font-russo text-xl sm:text-2xl">Loyalty Status</h1>
+            <span className="text-black/70 font-arone text-xs sm:text-sm">
               Earn rewards based on your service purchases
             </span>
           </div>
         </div>
 
         {/* Cards */}
-        <div className="flex gap-4 justify-between items-center">
+        <div className="flex flex-col md:flex-row gap-4">
           {loyaltyStatus.map((item, index) => {
             const bgClass =
               item.title === "Bronze"
@@ -30,23 +30,23 @@ export default function LoyaltyStatus() {
             return (
               <div
                 key={index}
-                className={`flex flex-col justify-center w-full space-y-2 items-center border-2 ${bgClass} rounded-lg p-4`}
+                className={`flex flex-col justify-center items-center border-2 ${bgClass} rounded-lg p-4 flex-1`}
                 style={{
                   boxShadow: "inset 0px 4px 90px rgba(0, 0, 0, 0.25)",
                 }}
               >
                 <item.icon
-                  className="w-8 h-8  text-white"
+                  className="w-7 h-7 sm:w-8 sm:h-8"
                   style={{ color: item.color }}
                 />
                 <span
-                  className="font-russo text-2xl"
+                  className="font-russo text-lg sm:text-2xl"
                   style={{ color: item.color }}
                 >
                   {item.title}
                 </span>
 
-                <span className="text-black/70 font-arone text-xs">
+                <span className="text-black/70 font-arone text-xs sm:text-sm text-center">
                   {item.description}
                 </span>
               </div>
@@ -62,25 +62,32 @@ export default function LoyaltyStatus() {
           }}
         >
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row justify-between gap-2">
               <div className="flex flex-col">
-                <span className="font-russo text-lg">Progress to Gold</span>
-                <span className="font-arone text-sm opacity-70">
+                <span className="font-russo text-base sm:text-lg">
+                  Progress to Gold
+                </span>
+                <span className="font-arone text-xs sm:text-sm opacity-70">
                   4 out of 10 purchases
                 </span>
               </div>
 
-              <div className="flex flex-col">
-                <span className="font-russo text-lg text-right">6</span>
-                <span className="text-sm font-arone">Purchases Left</span>
+              <div className="flex flex-col text-left sm:text-right">
+                <span className="font-russo text-base sm:text-lg">6</span>
+                <span className="text-xs sm:text-sm font-arone">
+                  Purchases Left
+                </span>
               </div>
             </div>
 
-            <div className="w-full bg-white/60 rounded-full h-3">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full w-1/2"></div>
+            <div className="w-full bg-white/60 rounded-full h-2 sm:h-3">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 sm:h-3 rounded-full w-1/2"></div>
             </div>
 
-            <span className="font-arone text-sm">Only <span className="text-secondary">6 more purchases</span> until you unluck Gold benefits!</span>
+            <span className="font-arone text-xs sm:text-sm">
+              Only <span className="text-secondary">6 more purchases</span>{" "}
+              until you unlock Gold benefits!
+            </span>
           </div>
         </div>
       </div>

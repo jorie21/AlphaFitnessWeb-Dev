@@ -7,7 +7,7 @@ export default function page() {
   return (
     <div>
       <ProfileHeader />
-      <div className="flex gap-4 screen">
+      <div className="flex flex-col lg:flex-row gap-4 screen">
         <LoyaltyStatus />
         <NutritionCard />
       </div>
