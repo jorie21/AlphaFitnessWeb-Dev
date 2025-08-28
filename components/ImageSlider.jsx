@@ -34,7 +34,7 @@ export default function ImageSlider({className}) {
     >
       {/* Image */}
       <div
-        className={`w-full h-full bg-center bg-cover opacity-20 transition-all duration-700
+        className={`w-full h-full bg-center bg-cover opacity-50 blur-[2px] transition-all duration-700
           ${"mask-mobile-fade"}`}
         style={{
           backgroundImage: `url(${images[currentIndex]})`,

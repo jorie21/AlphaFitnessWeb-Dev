@@ -1,3 +1,4 @@
+'use client'
 import React from "react";
 import { GiAchievement } from "react-icons/gi";
 import { loyaltyStatus } from "@/constant/profile";
