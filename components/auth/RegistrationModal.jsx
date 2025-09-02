@@ -1,3 +1,4 @@
+// RegistrationModal.jsx (Updated)
 "use client";
 import React, { useState } from "react";
 import {
@@ -15,17 +16,41 @@ import { CircleUser, Mail, Lock, LockKeyhole, Eye, EyeOff } from "lucide-react";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { useActionState } from "react";
-import { registerUser } from "@/app/actions/auth/register";
+import { registerUser, handleLoginWithGoogle, handleLoginWithFacebook } from "@/app/actions/auth/register";
 
 export default function RegistrationModal() {
   const [showCreatePass, setShowCreatePass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
 
   const [state, formAction, isPending] = useActionState(registerUser, {
     success: false,
     errors: {},
     message: "",
   });
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await handleLoginWithGoogle();
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    setIsFacebookLoading(true);
+    try {
+      await handleLoginWithFacebook();
+    } catch (error) {
+      console.error('Facebook sign-in error:', error);
+    } finally {
+      setIsFacebookLoading(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -243,29 +268,43 @@ export default function RegistrationModal() {
               {/* Social buttons */}
               <div className="flex justify-between">
                 <Button
+                  type="button"
                   variant="outline"
                   className="flex items-center font-arone text-xs gap-2 w-[180px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#4285F4] hover:text-[#4285F4] h-9"
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading || isPending}
                 >
-                  <Image
-                    src="/icons/google.png"
-                    alt="Google"
-                    width={16}
-                    height={16}
-                  />
-                  Sign in with Google
+                  {isGoogleLoading ? (
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Image
+                      src="/icons/google.png"
+                      alt="Google"
+                      width={16}
+                      height={16}
+                    />
+                  )}
+                  {isGoogleLoading ? "Signing in..." : "Sign in with Google"}
                 </Button>
 
                 <Button
+                  type="button"
                   variant="outline"
                   className="flex items-center gap-2 font-arone text-xs w-[180px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#1877F2] hover:text-[#1877F2] h-9"
+                  onClick={handleFacebookSignIn}
+                  disabled={isFacebookLoading || isPending}
                 >
-                  <Image
-                    src="/icons/facebook.png"
-                    alt="Facebook"
-                    width={16}
-                    height={16}
-                  />
-                  Sign in with Facebook
+                  {isFacebookLoading ? (
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Image
+                      src="/icons/facebook.png"
+                      alt="Facebook"
+                      width={16}
+                      height={16}
+                    />
+                  )}
+                  {isFacebookLoading ? "Signing in..." : "Sign in with Facebook"}
                 </Button>
               </div>
               </div>
@@ -276,3 +315,4 @@ export default function RegistrationModal() {
     </Dialog>
   );
 }
+
