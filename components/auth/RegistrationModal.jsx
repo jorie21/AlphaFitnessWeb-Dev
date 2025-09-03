@@ -1,4 +1,3 @@
-// RegistrationModal.jsx (Updated)
 "use client";
 import React, { useState } from "react";
 import {
@@ -16,7 +15,7 @@ import { CircleUser, Mail, Lock, LockKeyhole, Eye, EyeOff } from "lucide-react";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { useActionState } from "react";
-import { registerUser, handleLoginWithGoogle, handleLoginWithFacebook } from "@/app/actions/auth/register";
+import { registerUser, loginWithGoogle, loginWithFacebook } from "@/app/actions/auth/authController";
 
 export default function RegistrationModal() {
   const [showCreatePass, setShowCreatePass] = useState(false);
@@ -33,7 +32,7 @@ export default function RegistrationModal() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      await handleLoginWithGoogle();
+      await loginWithGoogle();
     } catch (error) {
       console.error('Google sign-in error:', error);
     } finally {
@@ -44,7 +43,7 @@ export default function RegistrationModal() {
   const handleFacebookSignIn = async () => {
     setIsFacebookLoading(true);
     try {
-      await handleLoginWithFacebook();
+      await loginWithFacebook();
     } catch (error) {
       console.error('Facebook sign-in error:', error);
     } finally {

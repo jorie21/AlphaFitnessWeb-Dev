@@ -15,9 +15,24 @@ import Image from "next/image";
 import AlphaFitness from "../Alphafitness";
 import { User, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/authContext";
+import { useActionState} from "react";
+import { loginUser } from "@/app/actions/auth/authController";
+import { loginWithFacebook, loginWithGoogle } from "@/app/actions/auth/authController";
 
 export default function LoginModal() {
   const [showPass, setShowPass] = useState(false);
+
+  const { setUser } = useAuth();
+  const [state, formAction, pending] = useActionState(loginUser, {
+    success: false,
+    message: "",
+    user: null,
+  });
+
+  if (state.success && state.user) {
+    setUser(state.user);
+  }
 
   return (
     <Dialog>
@@ -66,7 +81,7 @@ export default function LoginModal() {
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 w-5 h-5" />
-                    <Input placeholder="Email" className="pl-10 h-10" />
+                    <Input placeholder="Email" className="pl-10 h-10" name="email" />
                   </div>
                 </div>
 
@@ -81,6 +96,7 @@ export default function LoginModal() {
                       placeholder="Password"
                       className="pl-10 h-10"
                       type={showPass ? "text" : "password"}
+                      name="password"
                     />
                     <Button
                       type="button"

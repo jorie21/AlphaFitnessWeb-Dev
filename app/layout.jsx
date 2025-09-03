@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "@/components/Topbar";
+import { AuthProvider } from "@/context/authContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,13 +21,15 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="w-full overflow-x-hidden">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full overflow-x-hidden`}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full overflow-x-hidden`}
+      >
+        <AuthProvider>
+          <div className="pt-20">
+            <Topbar />
+          </div>
 
-        <div className="pt-20">
-          <Topbar />
-        </div>
-
-        <main className="w-full">{children}</main>
+          <main className="w-full">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
