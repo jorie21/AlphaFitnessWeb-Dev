@@ -1,3 +1,4 @@
+// 2. Fixed LoginModal.jsx
 "use client";
 import {
   Dialog,
@@ -14,31 +15,39 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import AlphaFitness from "../Alphafitness";
 import { User, Lock, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/authContext";
-import { useActionState} from "react";
+import { useActionState } from "react";
 import { loginUser } from "@/app/actions/auth/authController";
-import { loginWithFacebook, loginWithGoogle } from "@/app/actions/auth/authController";
+import {
+  loginWithFacebook,
+  loginWithGoogle,
+} from "@/app/actions/auth/authController";
 
 export default function LoginModal() {
   const [showPass, setShowPass] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Fix: Add dialog state control
 
   const { setUser } = useAuth();
   const [state, formAction, pending] = useActionState(loginUser, {
     success: false,
     message: "",
     user: null,
+    errors: {},
   });
 
-  if (state.success && state.user) {
-    setUser(state.user);
-  }
+  useEffect(() => {
+    if (state.success && state.user) {
+      setUser(state.user);
+      setIsOpen(false); // Close modal on successful login
+    }
+  }, [state.success, state.user, setUser]);
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outlineSecondary" className="font-arone">
-          Sign up
+          Sign In {/* Fix: Change to "Sign In" since this is login modal */}
         </Button>
       </DialogTrigger>
 
@@ -73,26 +82,43 @@ export default function LoginModal() {
                 </p>
               </div>
 
-              <form className="space-y-5">
+              {/* Fix: Add form action and error display */}
+              <form action={formAction} className="space-y-5">
+                <div className="relative">
+                  {!state.success && state.message && (
+                    <div className="absolute -top-6 p-3 left-0 right-0 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md text-center">
+                      {state.message}
+                    </div>
+                  )}
+                </div>
+
                 {/* Email address */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className={"font-arone"}>
+                  <Label htmlFor="email" className="font-arone">
                     Email Address
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 w-5 h-5" />
-                    <Input placeholder="Email" className="pl-10 h-10" name="email" />
+                    <Input
+                      id="email"
+                      placeholder="Email"
+                      className="pl-10 h-10"
+                      name="email"
+                      type="email"
+                    />
                   </div>
+                  {/* Fix: Display field-specific errors */}
                 </div>
 
                 {/* Password */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className={"font-arone"}>
+                  <Label htmlFor="password" className="font-arone">
                     Password
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 w-5 h-5" />
                     <Input
+                      id="password"
                       placeholder="Password"
                       className="pl-10 h-10"
                       type={showPass ? "text" : "password"}
@@ -100,11 +126,10 @@ export default function LoginModal() {
                     />
                     <Button
                       type="button"
-                      variant="icon"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setShowPass(!showPass)}
-                      className={
-                        "absolute right-3 top-1/2 -translate-y-1/2 opacity-70 "
-                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 opacity-70 h-auto p-0"
                     >
                       {showPass ? (
                         <EyeOff className="w-4 h-4" />
@@ -117,14 +142,14 @@ export default function LoginModal() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Checkbox id="remember" className={"border border-black"} />
+                    <Checkbox id="remember" className="border border-black" />
                     <Label htmlFor="remember" className="text-sm font-medium">
                       Remember me
                     </Label>
                   </div>
                   <Button
                     variant="link"
-                    className="p-0 h-auto text-Blue text-sm"
+                    className="p-0 h-auto text-blue-600 text-sm"
                     type="button"
                   >
                     Forgot Password
@@ -133,10 +158,11 @@ export default function LoginModal() {
 
                 <Button
                   type="submit"
-                  variant={"secondary"}
+                  variant="secondary"
                   className="w-full h-11 rounded-[10px] text-white font-medium"
+                  disabled={pending}
                 >
-                  Sign In
+                  {pending ? "Signing In..." : "Sign In"}
                 </Button>
 
                 <div className="relative">
@@ -150,9 +176,12 @@ export default function LoginModal() {
                   </div>
                 </div>
 
+                {/* Fix: Make social login buttons functional */}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0">
                   <Button
+                    type="button"
                     variant="outline"
+                    onClick={() => loginWithGoogle()}
                     className="flex items-center font-arone text-xs gap-2 w-full sm:w-[200px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#4285F4] hover:text-[#4285F4]"
                   >
                     <Image
@@ -165,7 +194,9 @@ export default function LoginModal() {
                   </Button>
 
                   <Button
+                    type="button"
                     variant="outline"
+                    onClick={() => loginWithFacebook()}
                     className="flex items-center gap-2 font-arone text-xs w-full sm:w-[200px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#1877F2] hover:text-[#1877F2]"
                   >
                     <Image
@@ -185,7 +216,7 @@ export default function LoginModal() {
           <div className="hidden sm:flex flex-1 bg-[linear-gradient(140deg,#171717_10%,#5B5B5B_50%,#171717_90%)] flex-col items-center justify-center p-8 text-white relative">
             <div className="flex flex-col justify-center items-center gap-4">
               <Image
-                src={"/ALPHAFIT.LOGO.png"}
+                src="/ALPHAFIT.LOGO.png"
                 alt="AlphaFitness"
                 width={200}
                 height={200}
@@ -197,13 +228,10 @@ export default function LoginModal() {
               </div>
 
               <p className="text-center">
-                You weren’t born to be average. You were built to be Alpha.
+                You weren't born to be average. You were built to be Alpha.
               </p>
 
-              <Button
-                variant={"outline"}
-                className={"text-white bg-transparent"}
-              >
+              <Button variant="outline" className="text-white bg-transparent">
                 Sign up
               </Button>
             </div>

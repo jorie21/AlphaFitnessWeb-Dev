@@ -86,20 +86,25 @@ export async function loginUser(prevState, formData) {
   const password = formData.get("password");
 
   const parsed = loginSchema.safeParse({ email, password });
-  if (!parsed) {
+  if (!parsed.success) {
     const errors = parsed.error.flatten().fieldErrors;
-    return { success: false, message: "Validation failed", errors };
+    return { success: false, message: "Validation failed", errors, user: null };
   }
 
-  const {data, error} = supabase.auth.signInWithPassword({email, password})
- 
+  const { data, error } = await supabase.auth.signInWithPassword({ email: parsed.data.email , password: parsed.data.password });
+
+
   if (error) {
     return { success: false, message: error.message, errors: {} };
   }
 
-   return { success: true, message: "Login successful!", errors: {}, user: data.user };
+  return {
+    success: true,
+    message: "Login successful!",
+    errors: {},
+    user: data.user,
+  };
 }
- 
 
 export async function loginWithGoogle() {
   const supabase = createServerSupabaseClient();
