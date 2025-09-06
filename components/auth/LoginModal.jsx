@@ -1,4 +1,3 @@
-// 2. Fixed LoginModal.jsx
 "use client";
 import {
   Dialog,
@@ -15,39 +14,63 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import AlphaFitness from "../Alphafitness";
 import { User, Lock, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { loginSchema } from "@/app/actions/validation/registerValidation";
 import { useAuth } from "@/context/authContext";
-import { useActionState } from "react";
-import { loginUser } from "@/app/actions/auth/authController";
-import {
-  loginWithFacebook,
-  loginWithGoogle,
-} from "@/app/actions/auth/authController";
+import { email } from "zod";
+import { redirect } from "next/dist/server/api-utils";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function LoginModal() {
   const [showPass, setShowPass] = useState(false);
-  const [isOpen, setIsOpen] = useState(false); // Fix: Add dialog state control
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState();
+  const [errors, setErrors] = useState({});
+  const { signIn, loading } = useAuth();
+  const router = useRouter();
+  // Handle input change
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: null }); // clear error as user types
+  };
 
-  const { setUser } = useAuth();
-  const [state, formAction, pending] = useActionState(loginUser, {
-    success: false,
-    message: "",
-    user: null,
-    errors: {},
-  });
+  // Handle form submit
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-  useEffect(() => {
-    if (state.success && state.user) {
-      setUser(state.user);
-      setIsOpen(false); // Close modal on successful login
+    const result = loginSchema.safeParse(formData);
+
+    if (!result.success) {
+      const fieldErrors = {};
+
+      result.error.issues.forEach((issue) => {
+        // Each issue.path is like ["email"] or ["password"]
+        const field = issue.path[0];
+        // Only keep the first error message for each field
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      });
+
+      setErrors(fieldErrors);
+      return;
     }
-  }, [state.success, state.user, setUser]);
+
+    // ✅ Clear errors when valid
+    setErrors({});
+
+    signIn(formData.email, formData.password).then(() => {
+      // refresh client-side cache & UI
+      router.refresh();
+    });
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog>
       <DialogTrigger asChild>
         <Button variant="outlineSecondary" className="font-arone">
-          Sign In {/* Fix: Change to "Sign In" since this is login modal */}
+          Sign In
         </Button>
       </DialogTrigger>
 
@@ -82,17 +105,8 @@ export default function LoginModal() {
                 </p>
               </div>
 
-              {/* Fix: Add form action and error display */}
-              <form action={formAction} className="space-y-5">
-                <div className="relative">
-                  {!state.success && state.message && (
-                    <div className="absolute -top-6 p-3 left-0 right-0 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md text-center">
-                      {state.message}
-                    </div>
-                  )}
-                </div>
-
-                {/* Email address */}
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="font-arone">
                     Email Address
@@ -101,13 +115,19 @@ export default function LoginModal() {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 w-5 h-5" />
                     <Input
                       id="email"
-                      placeholder="Email"
-                      className="pl-10 h-10"
                       name="email"
                       type="email"
+                      placeholder="Email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`pl-10 h-10 ${
+                        errors.email ? "border-red-500" : ""
+                      }`}
                     />
                   </div>
-                  {/* Fix: Display field-specific errors */}
+                  {errors.email && (
+                    <p className="text-red-500 text-sm">{errors.email}</p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -119,10 +139,14 @@ export default function LoginModal() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 w-5 h-5" />
                     <Input
                       id="password"
-                      placeholder="Password"
-                      className="pl-10 h-10"
-                      type={showPass ? "text" : "password"}
                       name="password"
+                      type={showPass ? "text" : "password"}
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`pl-10 h-10 ${
+                        errors.password ? "border-red-500" : ""
+                      }`}
                     />
                     <Button
                       type="button"
@@ -138,6 +162,9 @@ export default function LoginModal() {
                       )}
                     </Button>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm">{errors.password}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -160,59 +187,22 @@ export default function LoginModal() {
                   type="submit"
                   variant="secondary"
                   className="w-full h-11 rounded-[10px] text-white font-medium"
-                  disabled={pending}
+                  disabled={loading}
                 >
-                  {pending ? "Signing In..." : "Sign In"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-2 text-muted-foreground">
-                      OR
-                    </span>
-                  </div>
-                </div>
-
-                {/* Fix: Make social login buttons functional */}
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => loginWithGoogle()}
-                    className="flex items-center font-arone text-xs gap-2 w-full sm:w-[200px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#4285F4] hover:text-[#4285F4]"
-                  >
-                    <Image
-                      src="/icons/google.png"
-                      alt="Google"
-                      width={20}
-                      height={20}
-                    />
-                    Sign in with Google
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => loginWithFacebook()}
-                    className="flex items-center gap-2 font-arone text-xs w-full sm:w-[200px] justify-center border-none shadow-[0px_1px_5px_1px_rgba(0,_0,_0,_0.35)] hover:bg-blue-50 hover:border-[#1877F2] hover:text-[#1877F2]"
-                  >
-                    <Image
-                      src="/icons/facebook.png"
-                      alt="Facebook"
-                      width={20}
-                      height={20}
-                    />
-                    Sign in with Facebook
-                  </Button>
-                </div>
               </form>
             </div>
           </div>
 
-          {/* Right content (branding) - hidden on mobile */}
+          {/* Right content (branding) */}
           <div className="hidden sm:flex flex-1 bg-[linear-gradient(140deg,#171717_10%,#5B5B5B_50%,#171717_90%)] flex-col items-center justify-center p-8 text-white relative">
             <div className="flex flex-col justify-center items-center gap-4">
               <Image
@@ -221,16 +211,13 @@ export default function LoginModal() {
                 width={200}
                 height={200}
               />
-
               <div className="flex flex-row gap-2 text-2xl">
                 <p className="font-russo">WELCOME TO</p>
                 <AlphaFitness />
               </div>
-
               <p className="text-center">
                 You weren't born to be average. You were built to be Alpha.
               </p>
-
               <Button variant="outline" className="text-white bg-transparent">
                 Sign up
               </Button>

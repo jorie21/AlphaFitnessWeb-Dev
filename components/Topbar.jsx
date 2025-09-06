@@ -16,8 +16,13 @@ import AlphaFitness from "@/components/Alphafitness";
 import { menus } from "@/constant/menu";
 import LoginModal from "./auth/LoginModal";
 import RegistrationModal from "./auth/RegistrationModal";
+import { useAuth } from "@/context/authContext";
+
 
 export default function Topbar() {
+
+  const { signOut, session  } = useAuth()
+
   const handleSmoothScroll = (e, path) => {
     if (path.startsWith("#")) {
       e.preventDefault(); // stop Next.js routing
@@ -30,6 +35,12 @@ export default function Topbar() {
       history.replaceState(null, "", " ");
     }
   };
+
+  const logout = (e) => {
+    e.preventDefault()
+    signOut()
+  }
+
 
   return (
     <header className="bg-white fixed top-0 left-0 w-full z-50 shadow-[0_4px_10px_rgba(0,0,0,0.15)]">
@@ -61,10 +72,14 @@ export default function Topbar() {
         </nav>
 
         {/* Buttons (Desktop) */}
-        <div className="hidden md:flex gap-3">
-          <LoginModal />
-          <RegistrationModal />
-        </div>
+        {session == null ? (
+          <div className="hidden md:flex gap-3">
+            <LoginModal />
+            <RegistrationModal />
+          </div>
+        ) : (
+          <Button onClick={logout}>Logout</Button>
+        )}
 
         {/* Mobile Hamburger */}
         <Sheet>

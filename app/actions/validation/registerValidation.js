@@ -10,7 +10,7 @@ export const registerSchema = z
 
     email: z.string().email("Please enter a valid email address").min(1, "Email is required"),
 
-    CreatePassword: z
+    password: z
       .string()
       .min(8, "Password must be at least 8 characters")
       .regex(
@@ -18,16 +18,14 @@ export const registerSchema = z
         "Password must contain at least one uppercase letter, one lowercase letter, and one number",
       ),
 
-    ConfirmPassword: z.string().min(1, "Please confirm your password"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
 
-    agreeTerms: z.boolean().refine((val) => val === true, "You must agree to the terms and conditions"),
   })
   .refine((data) => data.CreatePassword === data.ConfirmPassword, {
     message: "Passwords don't match",
     path: ["ConfirmPassword"],
   })
-
-export const loginSchema = z.object({
+ export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email").min(1, "Email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters").min(1, "Password is required")
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
