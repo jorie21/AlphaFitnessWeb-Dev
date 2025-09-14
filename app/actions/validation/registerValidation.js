@@ -29,3 +29,17 @@ export const registerSchema = z
   email: z.string().email("Please enter a valid email").min(1, "Email is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "At least 8 characters")
+      .regex(/[A-Z]/, "One uppercase letter")
+      .regex(/[a-z]/, "One lowercase letter")
+      .regex(/\d/, "One number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });

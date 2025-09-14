@@ -129,42 +129,78 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const signInWithGoogle = async () => {
+const signInWithGoogle = async () => {
   setLoading(true)
 
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`, // adjust if needed
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
     if (error) {
-      toast({
-        title: "Sign-in failed",
-        description: error.message,
-        variant: "destructive",
-      })
+      toast.error(error.message || "Google sign-in failed")
       return
     }
 
-    toast({
-      title: "Redirecting...",
-      description: "You'll be redirected to Google sign-in.",
-    })
-
+    toast("Redirecting to Google...")
     console.log("OAuth data:", data)
   } catch (err) {
-    toast({
-      title: "Unexpected error",
-      description: err.message,
-      variant: "destructive",
-    })
+    toast.error(err.message || "Unexpected error during Google sign-in")
   } finally {
     setLoading(false)
   }
 }
+
+const signInWithFacebook = async () => {
+  try {
+    const {data , error} = await supabase.auth.signInWithOAuth({
+      provider: "facebook",
+      options: {
+        redirectTo:  `${window.location.origin}/auth/callback` 
+      }
+    })
+
+    if(error){
+      toast.error(error.message || "Facebook sign-in failed")
+      return
+    }
+
+    toast("Redirecting to Facebook...")
+  } catch (error) {
+    toast.error(err.message || "Unexpected error during Google sign-in")
+  }finally {
+    setLoading(false)
+  }
+}
+const resetPassword = async (email) => {
+  try {
+    setLoading(true);
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+
+    if (error) {
+      toast.error(error.message || "Failed to send reset email.");
+      return { data: null, error };
+    }
+
+    toast.success("Password reset email sent! Check your inbox.");
+    return { data, error: null };
+  } catch (err) {
+    console.error("Password reset failed:", err);
+    toast.error("Unexpected error during password reset.");
+    return { data: null, error: err };
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
   useEffect(() => {
     fetchSession();
 
@@ -190,11 +226,13 @@ export function AuthProvider({ children }) {
     fetchSession,
 
     // Auth functions
+    
     signIn,
     signUp,
     signOut,
     signInWithGoogle,
-
+    signInWithFacebook,
+    resetPassword,
     // Legacy
     setSession,
     logOut: signOut,

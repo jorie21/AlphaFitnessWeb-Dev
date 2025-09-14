@@ -35,7 +35,7 @@ export default function RegistrationModal() {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
-  const { signUp, loading, signInWithGoogle } = useAuth();
+  const { signUp, loading, signInWithGoogle, signInWithFacebook } = useAuth();
   const [agree, setAgree] = useState(false);
 
   // ✅ Reset all fields properly
@@ -100,12 +100,6 @@ export default function RegistrationModal() {
                 Sign up and discover all the amazing opportunities waiting for
                 you
               </p>
-              <Button
-                variant="outline"
-                className="text-white bg-transparent border-white/40 hover:bg-white hover:text-black"
-              >
-                Sign in
-              </Button>
             </div>
           </div>
 
@@ -245,6 +239,7 @@ export default function RegistrationModal() {
 
               {/* Footer */}
               <div className="space-y-3">
+                {/* submit */}
                 <Button
                   variant="secondary"
                   className="w-full h-10 text-white font-medium"
@@ -273,6 +268,7 @@ export default function RegistrationModal() {
                 </div>
 
                 <div className="flex justify-between gap-3">
+                  {/* Google */}
                   <Button
                     type="button"
                     variant="outline"
@@ -287,10 +283,12 @@ export default function RegistrationModal() {
                     />
                     Sign in with Google
                   </Button>
+                  {/* facebook */}
                   <Button
                     type="button"
                     variant="outline"
                     className="flex-1 font-arone text-xs shadow-md hover:bg-blue-50 hover:border-[#1877F2] hover:text-[#1877F2] h-9"
+                    onClick={signInWithFacebook}
                   >
                     <Image
                       src="/icons/facebook.png" 
