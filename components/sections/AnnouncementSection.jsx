@@ -23,7 +23,7 @@ const gradients = [
 
 export default function AnnouncementSection() {
   return (
-    <div className="relative w-full screen ">
+    <div className="relative w-full  screen ">
       {/* Header */}
       <div className="flex flex-col items-center gap-6 mb-12 px-4 text-center">
         {/* Heading with Icon */}
@@ -69,26 +69,22 @@ export default function AnnouncementSection() {
           768: { slidesPerView: 2 },
           1024: { slidesPerView: 3 },
         }}
+      
       >
         {announcements.map((data, index) => {
           const bg = data?.background || gradients[index % gradients.length];
 
           return (
-            <SwiperSlide key={data.id}>
+            <SwiperSlide key={data.id} >
               {/* ✅ Wrap Card in Motion */}
+ 
               <motion.div
                 initial={{ opacity: 0, y: 40, scale: 0.95 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{
-                  duration: 0.6,
-                  delay: index * 0.1, // staggered delay for smooth feel
-                  ease: "easeOut",
-                }}
                 viewport={{ once: false, amount: 0.2 }}
-                whileHover={{ scale: 1.1 }} // ✅ still allows hover scaling
               >
                 <Card
-                  className={`relative rounded-3xl p-6 text-white shadow-2xl ${bg} flex flex-col justify-between min-h-[400px]`}
+                  className={`relative rounded-3xl p-6 text-white shadow-xl ${bg} flex flex-col justify-between min-h-[400px]`}
                 >
                   {/* Logo */}
                   {data?.logos?.main && (
@@ -198,9 +194,12 @@ export default function AnnouncementSection() {
                   </CardContent>
                 </Card>
               </motion.div>
+
+              
             </SwiperSlide>
           );
         })}
+        <div className="mt-10"></div>
       </Swiper>
     </div>
   );

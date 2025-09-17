@@ -9,17 +9,19 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch current session
   const fetchSession = async () => {
+    setLoading(true); // start loading
     try {
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
         toast.error(error.message || "Failed to fetch session.");
         setError(error);
+        setLoading(false);
         return null;
       }
 
@@ -33,6 +35,8 @@ export function AuthProvider({ children }) {
       toast.error("Unexpected error fetching session.");
       setError(err);
       return null;
+    } finally {
+      setLoading(false); // always stop loading
     }
   };
 
@@ -68,7 +72,7 @@ export function AuthProvider({ children }) {
   };
 
   // Sign up
-  const signUp = async (username ,email, password) => {
+  const signUp = async (username, email, password) => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -77,15 +81,32 @@ export function AuthProvider({ children }) {
         options: {
           data: {
             username,
-            display_name: username
-          }
-        }
+            display_name: username,
+          },
+        },
       });
 
       if (error) {
         toast.error(error.message || "Failed to sign up.");
         setError(error);
         return { data: null, error };
+      }
+
+      if (data?.user) {
+        const { error: insertError } = await supabase.from("users").insert([
+          {
+            id: data.user.id,
+            email: data.user.email,
+            username: username,
+          },
+        ]);
+
+        if (insertError) {
+          console.error("Insert error:", insertError.message);
+          toast.error(`Insert failed: ${insertError.message}`);
+        } else {
+          console.log("User inserted successfully into public.users");
+        }
       }
 
       setError(null);
@@ -129,77 +150,74 @@ export function AuthProvider({ children }) {
     }
   };
 
-const signInWithGoogle = async () => {
-  setLoading(true)
-
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      toast.error(error.message || "Google sign-in failed")
-      return
-    }
-
-    toast("Redirecting to Google...")
-    console.log("OAuth data:", data)
-  } catch (err) {
-    toast.error(err.message || "Unexpected error during Google sign-in")
-  } finally {
-    setLoading(false)
-  }
-}
-
-const signInWithFacebook = async () => {
-  try {
-    const {data , error} = await supabase.auth.signInWithOAuth({
-      provider: "facebook",
-      options: {
-        redirectTo:  `${window.location.origin}/auth/callback` 
-      }
-    })
-
-    if(error){
-      toast.error(error.message || "Facebook sign-in failed")
-      return
-    }
-
-    toast("Redirecting to Facebook...")
-  } catch (error) {
-    toast.error(err.message || "Unexpected error during Google sign-in")
-  }finally {
-    setLoading(false)
-  }
-}
-const resetPassword = async (email) => {
-  try {
+  const signInWithGoogle = async () => {
     setLoading(true);
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
 
-    if (error) {
-      toast.error(error.message || "Failed to send reset email.");
-      return { data: null, error };
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message || "Google sign-in failed");
+        return;
+      }
+
+      toast("Redirecting to Google...");
+      console.log("OAuth data:", data);
+    } catch (err) {
+      toast.error(err.message || "Unexpected error during Google sign-in");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    toast.success("Password reset email sent! Check your inbox.");
-    return { data, error: null };
-  } catch (err) {
-    console.error("Password reset failed:", err);
-    toast.error("Unexpected error during password reset.");
-    return { data: null, error: err };
-  } finally {
-    setLoading(false);
-  }
-};
+  const signInWithFacebook = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
+      if (error) {
+        toast.error(error.message || "Facebook sign-in failed");
+        return;
+      }
 
+      toast("Redirecting to Facebook...");
+    } catch (error) {
+      toast.error(err.message || "Unexpected error during Google sign-in");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const resetPassword = async (email) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
 
+      if (error) {
+        toast.error(error.message || "Failed to send reset email.");
+        return { data: null, error };
+      }
+
+      toast.success("Password reset email sent! Check your inbox.");
+      return { data, error: null };
+    } catch (err) {
+      console.error("Password reset failed:", err);
+      toast.error("Unexpected error during password reset.");
+      return { data: null, error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchSession();
@@ -226,7 +244,7 @@ const resetPassword = async (email) => {
     fetchSession,
 
     // Auth functions
-    
+
     signIn,
     signUp,
     signOut,
@@ -236,14 +254,9 @@ const resetPassword = async (email) => {
     // Legacy
     setSession,
     logOut: signOut,
-    
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

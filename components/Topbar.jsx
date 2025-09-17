@@ -17,11 +17,10 @@ import { menus } from "@/constant/menu";
 import LoginModal from "./auth/LoginModal";
 import RegistrationModal from "./auth/RegistrationModal";
 import { useAuth } from "@/context/authContext";
-
+import ProfileDropdown from "./ProfileDropdown";
 
 export default function Topbar() {
-
-  const { signOut, session  } = useAuth()
+  const { signOut, session, loading } = useAuth();
 
   const handleSmoothScroll = (e, path) => {
     if (path.startsWith("#")) {
@@ -37,10 +36,9 @@ export default function Topbar() {
   };
 
   const logout = (e) => {
-    e.preventDefault()
-    signOut()
-  }
-
+    e.preventDefault();
+    signOut();
+  };
 
   return (
     <header className="bg-white fixed top-0 left-0 w-full z-50 shadow-[0_4px_10px_rgba(0,0,0,0.15)]">
@@ -72,13 +70,19 @@ export default function Topbar() {
         </nav>
 
         {/* Buttons (Desktop) */}
-        {session == null ? (
+        {loading ? (
+          // Fallback while fetching
+          <div className="hidden md:flex items-center gap-2">
+            <div className="h-8 w-24 rounded-md bg-gray-200 animate-pulse"></div>
+            <div className="h-8 w-24 rounded-md bg-gray-200 animate-pulse"></div>
+          </div>
+        ) : session == null ? (
           <div className="hidden md:flex gap-3">
             <LoginModal />
             <RegistrationModal />
           </div>
         ) : (
-          <Button onClick={logout}>Logout</Button>
+          <ProfileDropdown user={session?.user} logout={logout} />
         )}
 
         {/* Mobile Hamburger */}

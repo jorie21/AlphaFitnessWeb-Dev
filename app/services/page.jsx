@@ -1,9 +1,47 @@
+'use client'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CreditCard, Check, RefreshCcw } from "lucide-react"
 import { keycardFeature, keycardRenew } from "@/constant/features"
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function KeycardsPage() {
+   const [loading, setLoading] = useState(false);
+
+  const handlePurchase = async (type) => {
+    try {
+      setLoading(true);
+
+      // Replace with actual userId from Supabase AuthContext
+      const userId = "user-uuid-here"; 
+
+      const res = await fetch("/api/keycards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          type, // "basic" or "renew"
+          eWalletType: "GCASH", // can also be "PAYMAYA"
+          keycardId: type === "renew" ? "USER-KEYCARD-ID" : null, 
+          services: type === "renew" ? ["Gym Membership"] : null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Redirecting to payment...");
+        window.location.href = data.payment.actions.mobile_web_checkout_url;
+      } else {
+        toast.error(data.error || "Something went wrong");
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <section className="screen flex flex-col justify-center items-center gap-8 px-4 sm:px-8 ">
       
@@ -51,8 +89,12 @@ export default function KeycardsPage() {
           </CardContent>
 
           <CardFooter className="pt-4">
-            <Button className="w-full bg-gray-700 hover:bg-transparent border hover:border-gray-700 hover:text-gray-700 text-white font-medium py-3 rounded-lg">
-              Get Basic Keycard
+            <Button
+              disabled={loading}
+              onClick={() => handlePurchase("basic")}
+              className="w-full bg-gray-700 hover:bg-transparent border hover:border-gray-700 hover:text-gray-700 text-white font-medium py-3 rounded-lg"
+            >
+              {loading ? "Processing..." : "Get Basic Keycard"}
             </Button>
           </CardFooter>
         </Card>
@@ -87,8 +129,13 @@ export default function KeycardsPage() {
           </CardContent>
 
           <CardFooter className="pt-4">
-            <Button variant="secondary" className="w-full font-arone text-white font-medium py-3">
-              Renew Now
+            <Button
+              disabled={loading}
+              onClick={() => handlePurchase("renew")}
+              variant="secondary"
+              className="w-full font-arone text-white font-medium py-3"
+            >
+              {loading ? "Processing..." : "Renew Now"}
             </Button>
           </CardFooter>
         </Card>
