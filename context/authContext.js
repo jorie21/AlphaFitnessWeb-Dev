@@ -92,22 +92,6 @@ export function AuthProvider({ children }) {
         return { data: null, error };
       }
 
-      if (data?.user) {
-        const { error: insertError } = await supabase.from("users").insert([
-          {
-            id: data.user.id,
-            email: data.user.email,
-            username: username,
-          },
-        ]);
-
-        if (insertError) {
-          console.error("Insert error:", insertError.message);
-          toast.error(`Insert failed: ${insertError.message}`);
-        } else {
-          console.log("User inserted successfully into public.users");
-        }
-      }
 
       setError(null);
       toast.success("Account created! Check your email to confirm.");
