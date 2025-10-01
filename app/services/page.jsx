@@ -18,35 +18,31 @@ export default function KeycardsPage() {
   const [loading, setLoading] = useState(false);
   const { user, loading: authLoading } = useAuth(); // ✅ get user directly
 
+  // ✅ checkout function
   const handlePurchase = async (type) => {
     if (!user) {
-      toast.error("You must be logged in to checkout.");
+      toast.error("You need to login first!");
       return;
     }
 
     try {
       setLoading(true);
-
-      const res = await fetch("/api/keycards/checkout", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id, // ✅ use real supabase user id
-          type,
-          keycardId: type === "renew" ? "EXISTING_KEYCARD_ID" : null,
-          services: type === "renew" ? ["Gym Access", "Pool Access"] : null,
-        }),
+        body: JSON.stringify({ user_id: user.id, type }),
       });
 
       const data = await res.json();
+
       if (data.url) {
-        window.location.href = data.url;
+        window.location.href = data.url; // redirect to Stripe checkout
       } else {
-        toast.error("Payment failed");
+        toast.error(data.error || "Failed to start checkout.");
       }
     } catch (err) {
-      toast.error("Something went wrong");
-      console.error(err);
+      console.error("Checkout error:", err);
+      toast.error("Something went wrong during checkout.");
     } finally {
       setLoading(false);
     }
@@ -97,7 +93,11 @@ export default function KeycardsPage() {
               onClick={() => handlePurchase("basic")}
               className="w-full"
             >
-              {loading ? "Processing..." : !user ? "Login to Purchase" : "Get Basic Keycard"}
+              {loading
+                ? "Processing..."
+                : !user
+                ? "Login to Purchase"
+                : "Get Basic Keycard"}
             </Button>
           </CardFooter>
         </Card>
@@ -131,7 +131,11 @@ export default function KeycardsPage() {
               variant="secondary"
               className="w-full"
             >
-              {loading ? "Processing..." : !user ? "Login to Renew" : "Renew Now"}
+              {loading
+                ? "Processing..."
+                : !user
+                ? "Login to Renew"
+                : "Renew Now"}
             </Button>
           </CardFooter>
         </Card>

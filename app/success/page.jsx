@@ -1,56 +1,66 @@
-'use client';
+"use client";
 
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { CheckCircle } from "lucide-react";
 
 export default function SuccessPage() {
-  const searchParams = useSearchParams();
-  const [keyData, setKeyData] = useState(null);
-  
-  const uid = searchParams.get('uid');
-  const sessionId = searchParams.get('session_id');
+  const [keycard, setKeycard] = useState(null);
 
-  useEffect(() => {
-    if (uid && sessionId) {
-      // You can fetch keycard details here if needed
-      setKeyData({ uid, sessionId });
-      console.log('Payment successful:', { uid, sessionId });
+ useEffect(() => {
+  async function insertDebugKeycard() {
+    try {
+      const res = await fetch("/api/keycards/insert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: "DEBUG_USER_1",
+          type: "basic",
+          status: "active",
+        }),
+      });
+      const data = await res.json();
+      console.log("Inserted keycard:", data);
+      if (data.data && data.data.length > 0) {
+        setKeycard(data.data[0]);
+      }
+    } catch (err) {
+      console.error("Failed to insert debug keycard:", err);
     }
-  }, [uid, sessionId]);
-
-  if (!uid || !sessionId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">Invalid Access</h1>
-          <p>Missing required parameters</p>
-        </div>
-      </div>
-    );
   }
 
+  insertDebugKeycard();
+}, []);
+
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50">
-      <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md">
-        <div className="text-green-500 text-6xl mb-4">✅</div>
-        <h1 className="text-3xl font-bold text-green-600 mb-4">Payment Successful!</h1>
-        <p className="text-gray-600 mb-4">
-          Your keycard has been created successfully.
+    <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 px-4">
+      <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md w-full">
+        <CheckCircle className="mx-auto mb-4 w-16 h-16 text-green-500" />
+        <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
+        <p className="text-gray-700 mb-6">
+          Your keycard purchase has been processed successfully.
+          <br />
+          ✅ Your keycard information has been securely stored in our system.
         </p>
-        <div className="bg-gray-100 p-4 rounded-lg mb-4">
-          <p className="font-semibold">Keycard ID:</p>
-          <p className="text-lg font-mono">{uid}</p>
-        </div>
-        <div className="bg-gray-100 p-4 rounded-lg mb-6">
-          <p className="font-semibold">Session ID:</p>
-          <p className="text-sm font-mono break-all">{sessionId}</p>
-        </div>
-        <button 
-          onClick={() => window.location.href = '/services'}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
-        >
-          View My Keycards
-        </button>
+
+        {keycard && (
+          <div className="p-4 mb-4 border border-green-300 rounded-lg bg-green-100 text-left">
+            <h2 className="font-bold mb-2">Debug Keycard Info:</h2>
+            <p><strong>Type:</strong> {keycard.type}</p>
+            <p><strong>Status:</strong> {keycard.status}</p>
+            <p><strong>Purchased At:</strong> {new Date(keycard.purchased_at).toLocaleString()}</p>
+            {keycard.expires_at && (
+              <p><strong>Expires At:</strong> {new Date(keycard.expires_at).toLocaleDateString()}</p>
+            )}
+          </div>
+        )}
+
+        <Link href="/">
+          <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg shadow">
+            Go to Dashboard
+          </button>
+        </Link>
       </div>
     </div>
   );

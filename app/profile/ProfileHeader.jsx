@@ -2,17 +2,39 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { SquarePen } from "lucide-react";
+import { SquarePen, KeyRound, X } from "lucide-react";
 import { totalValue } from "@/constant/profile";
+import { toast } from "sonner";
 
 export default function ProfileHeader() {
   const [selectedImage, setSelectedImage] = useState(null);
+  const [keycards, setKeycards] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       const imageURL = URL.createObjectURL(file);
       setSelectedImage(imageURL);
+    }
+  };
+
+  const handleFetchKeycards = async () => {
+    try {
+      const res = await fetch("/api/keycards/get", {
+        method: "POST",
+        body: JSON.stringify({ userId: "USER_ID_HERE" }), // Replace with AuthContext user id
+      });
+      const data = await res.json();
+      if (data.keycards) {
+        setKeycards(data.keycards);
+        setShowModal(true);
+        toast.success("Keycards loaded!");
+      } else {
+        toast.error("No keycards found");
+      }
+    } catch (err) {
+      toast.error("Failed to fetch keycards: " + err.message);
     }
   };
 
@@ -23,7 +45,6 @@ export default function ProfileHeader() {
         <div className="flex flex-col md:flex-row gap-4 justify-center md:justify-start items-center md:items-center">
           {/* profile */}
           <div className="flex flex-col items-center">
-            {/* Hidden file input */}
             <input
               type="file"
               accept="image/*"
@@ -31,12 +52,7 @@ export default function ProfileHeader() {
               className="hidden"
               onChange={handleImageChange}
             />
-
-            {/* Clickable Avatar */}
-            <label
-              htmlFor="avatarUpload"
-              className="cursor-pointer relative group"
-            >
+            <label htmlFor="avatarUpload" className="cursor-pointer relative group">
               <div className="w-28 h-28 md:w-35 md:h-35 rounded-full overflow-hidden border-2 gradient-border shadow-lg flex items-center justify-center bg-gray-100">
                 {selectedImage ? (
                   <Image
@@ -52,15 +68,13 @@ export default function ProfileHeader() {
                   </span>
                 )}
               </div>
-
-              {/* Hover overlay */}
               <div className="absolute inset-0 rounded-full bg-black/40 backdrop-blur-sm flex text-center items-center justify-center text-white opacity-0 group-hover:opacity-100 transition">
                 Change Profile
               </div>
             </label>
           </div>
 
-          {/* right at the profile */}
+          {/* right of profile */}
           <div className="flex flex-col gap-3 text-center md:text-left">
             <h1 className="font-russo text-white text-2xl md:text-3xl">
               Welcome Back, Jhon!
@@ -69,7 +83,7 @@ export default function ProfileHeader() {
               Ready to crush your fitness goals today? Let&apos;s make it happen!
             </span>
 
-            {/* 3 cards */}
+            {/* stats cards */}
             <div className="flex flex-wrap md:flex-nowrap justify-center md:justify-start gap-2 w-full">
               {totalValue.map((item, index) => (
                 <div
@@ -91,8 +105,8 @@ export default function ProfileHeader() {
           </div>
         </div>
 
-        {/* right Profile (kept same on desktop, stacked on mobile) */}
-        <div className="flex justify-center md:justify-end">
+        {/* right Profile */}
+        <div className="flex flex-col items-center md:items-end gap-3">
           <Button
             variant="secondary"
             className="font-arone font-bold text-sm text-white flex items-center gap-2"
@@ -100,8 +114,48 @@ export default function ProfileHeader() {
             <SquarePen className="w-4 h-4" />
             Edit Profile
           </Button>
+
+          {/* Digital Keycard Button */}
+          <Button
+            onClick={handleFetchKeycards}
+            className="mt-3 font-arone font-bold text-sm text-white flex items-center gap-2 bg-green-700 hover:bg-green-800"
+          >
+            <KeyRound className="w-4 h-4" />
+            YOUR DIGITAL KEYCARD
+          </Button>
         </div>
       </div>
+
+      {/* Keycard Modal */}
+      {showModal && (
+        <div className="fixed top-0 right-0 h-full w-80 bg-black/90 backdrop-blur-md shadow-xl z-50 p-6 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-white font-russo text-xl">Your Keycards</h2>
+            <button onClick={() => setShowModal(false)} className="text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {keycards.length > 0 ? (
+              keycards.map((kc) => (
+                <div
+                  key={kc.id}
+                  className="p-3 border border-white/30 rounded-lg bg-black/40"
+                >
+                  <p><strong>Type:</strong> {kc.type}</p>
+                  <p><strong>Status:</strong> {kc.status}</p>
+                  <p><strong>Purchased At:</strong> {new Date(kc.purchased_at).toLocaleDateString()}</p>
+                  {kc.expires_at && (
+                    <p><strong>Expires:</strong> {new Date(kc.expires_at).toLocaleDateString()}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-white">No keycards found.</p>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

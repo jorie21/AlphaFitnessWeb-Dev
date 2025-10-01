@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
-export async function GET(req) {
-  const uid = req.nextUrl.searchParams.get("uid");
-  if (!uid)
-    return NextResponse.json({ error: "uid required" }, { status: 400 });
+export async function POST(req) {
+  try {
+    const { userId } = await req.json();
 
-  const { data, error } = await supabase
-    .from("keycards")
-    .select("*")
-    .eq("unique_id", uid)
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
 
-  return NextResponse.json({ keycard: data });
+    // Fetch keycards for the user
+    const { data, error } = await supabase
+      .from("keycards")
+      .select("*")
+      .eq("user_id", userId)
+      .order("purchased_at", { ascending: false });
+
+    if (error) {
+      console.error("Supabase fetch error:", error);
+      return NextResponse.json({ error: "Failed to fetch keycards" }, { status: 500 });
+    }
+
+    return NextResponse.json({ keycards: data });
+  } catch (err) {
+    console.error("API error:", err);
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+  }
 }
