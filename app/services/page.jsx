@@ -1,49 +1,54 @@
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Check, RefreshCcw } from "lucide-react";
 import { keycardFeature, keycardRenew } from "@/constant/features";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuth } from "@/context/authContext"; // ✅ use your context
+import { useAuth } from "@/context/authContext";
 
 export default function KeycardsPage() {
   const [loading, setLoading] = useState(false);
-  const { user, loading: authLoading } = useAuth(); // ✅ get user directly
+  const { user, loading: authLoading } = useAuth();
 
-  // ✅ checkout function
   const handlePurchase = async (type) => {
     if (!user) {
-      toast.error("You need to login first!");
+      toast.error("Please login to purchase a keycard");
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const res = await fetch("/api/checkout", {
+      // Create checkout session
+      const response = await fetch("/api/stripe/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, type }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          userId: user.id,
+          email: user.email,
+        }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (data.url) {
-        window.location.href = data.url; // redirect to Stripe checkout
-      } else {
-        toast.error(data.error || "Failed to start checkout.");
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
       }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error("Something went wrong during checkout.");
-    } finally {
+
+      // Direct redirect to Stripe Checkout URL
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error(error.message || "Failed to process payment");
       setLoading(false);
     }
   };
@@ -73,11 +78,13 @@ export default function KeycardsPage() {
               Get your Alpha Fitness keycard without any services loaded
             </CardDescription>
           </CardHeader>
+
           <CardContent className="text-center space-y-6">
             <div className="space-y-1">
               <div className="text-4xl font-bold text-gray-900">₱150</div>
               <p className="text-sm text-gray-500">One-time fee</p>
             </div>
+
             <div className="space-y-3">
               {keycardFeature.map((feature, index) => (
                 <div key={index} className="flex items-center gap-3 text-left">
@@ -87,17 +94,14 @@ export default function KeycardsPage() {
               ))}
             </div>
           </CardContent>
+
           <CardFooter>
             <Button
               disabled={loading || !user || authLoading}
               onClick={() => handlePurchase("basic")}
               className="w-full"
             >
-              {loading
-                ? "Processing..."
-                : !user
-                ? "Login to Purchase"
-                : "Get Basic Keycard"}
+              {loading ? "Processing..." : !user ? "Login to Purchase" : "Get Basic Keycard"}
             </Button>
           </CardFooter>
         </Card>
@@ -113,8 +117,13 @@ export default function KeycardsPage() {
               Renew your existing Alpha Fitness keycard
             </CardDescription>
           </CardHeader>
+
           <CardContent className="text-center space-y-6">
-            <p className="text-sm text-gray-500">One-time fee</p>
+            <div className="space-y-1">
+              <div className="text-4xl font-bold text-gray-900">₱100</div>
+              <p className="text-sm text-gray-500">One-time fee</p>
+            </div>
+
             <div className="space-y-3">
               {keycardRenew.map((feature, index) => (
                 <div key={index} className="flex items-center gap-3 text-left">
@@ -124,6 +133,7 @@ export default function KeycardsPage() {
               ))}
             </div>
           </CardContent>
+
           <CardFooter>
             <Button
               disabled={loading || !user || authLoading}
@@ -131,11 +141,7 @@ export default function KeycardsPage() {
               variant="secondary"
               className="w-full"
             >
-              {loading
-                ? "Processing..."
-                : !user
-                ? "Login to Renew"
-                : "Renew Now"}
+              {loading ? "Processing..." : !user ? "Login to Renew" : "Renew Now"}
             </Button>
           </CardFooter>
         </Card>
