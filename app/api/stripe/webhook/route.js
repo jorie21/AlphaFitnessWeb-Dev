@@ -1,75 +1,51 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
+import QRCode from "qrcode";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req) {
-  const body = await req.text();
   const sig = req.headers.get("stripe-signature");
+  const body = await req.text();
 
   let event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
-    return NextResponse.json(
-      { error: `Webhook Error: ${err.message}` },
-      { status: 400 }
-    );
+    console.error("❌ Webhook verification failed:", err.message);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { userId, type } = session.metadata;
+    const { uniqueId, userId } = session.metadata;
 
-    try {
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substr(2, 9).toUpperCase();
-      const uniqueId = `KC-${timestamp}-${randomString}`;
-      
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    console.log("✅ Payment success for:", uniqueId);
 
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${uniqueId}`;
+    // set expiry (1 year)
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-      const { data: keycard, error } = await supabase
-        .from("keycards")
-        .insert({
-          user_id: userId,
-          unique_id: uniqueId,
-          type: type,
-          status: "active",
-          expires_at: expiresAt.toISOString(),
-          qr_code_url: qrCodeUrl,
-        })
-        .select()
-        .single();
+    // generate QR
+    const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
+    const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-      if (error) {
-        console.error("Database error:", error);
-        return NextResponse.json(
-          { error: "Failed to create keycard" },
-          { status: 500 }
-        );
-      }
+    // update existing keycard
+    const { error: updateError } = await supabase
+      .from("keycards")
+      .update({
+        status: "active",
+        expires_at: expiresAt,
+        qr_code_url: qrCodeUrl,
+      })
+      .eq("unique_id", uniqueId);
 
-      console.log("Keycard created successfully:", keycard);
-
-    } catch (error) {
-      console.error("Error processing payment:", error);
+    if (updateError) {
+      console.error("❌ Failed to update keycard:", updateError);
       return NextResponse.json(
-        { error: "Failed to process payment" },
+        { error: "Failed to update keycard" },
         { status: 500 }
       );
     }

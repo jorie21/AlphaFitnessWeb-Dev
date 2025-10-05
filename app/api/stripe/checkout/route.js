@@ -1,26 +1,61 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { supabase } from "@/lib/supabaseClient";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
   try {
-    const { type, userId, email } = await req.json();
+    const { userId, type = "basic" } = await req.json();
 
-    if (!userId || !email) {
-      return NextResponse.json(
-        { error: "Missing userId or email" },
-        { status: 400 }
-      );
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    // Define prices for each keycard type
-    const prices = {
-      basic: 15000, // ₱150 in cents (Stripe uses smallest currency unit)
-      renew: 10000, // ₱100 in cents (adjust price as needed)
-    };
+    // Check for an existing keycard
+    const { data: existingCards, error: fetchError } = await supabase
+      .from("keycards")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-    // Create Stripe Checkout Session
+    if (fetchError) throw fetchError;
+
+    let uniqueId;
+
+    if (existingCards && existingCards.length > 0) {
+      const currentCard = existingCards[0];
+
+      if (type === "renew" && currentCard.status !== "expired") {
+        return NextResponse.json(
+          { error: "You can only renew an expired keycard." },
+          { status: 400 }
+        );
+      }
+
+      // use same unique ID for renew
+      uniqueId = currentCard.unique_id;
+    } else {
+      // create new only if no existing keycard at all
+      uniqueId = `KEY-${Math.random()
+        .toString(36)
+        .slice(2, 10)
+        .toUpperCase()}`;
+
+      const { error: insertError } = await supabase.from("keycards").insert([
+        {
+          user_id: userId,
+          unique_id: uniqueId,
+          status: "pending",
+          type: "basic",
+        },
+      ]);
+
+      if (insertError) throw insertError;
+    }
+
+    // create Stripe checkout
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -28,38 +63,25 @@ export async function POST(req) {
           price_data: {
             currency: "php",
             product_data: {
-              name: type === "basic" 
-                ? "Alpha Fitness Basic Keycard" 
-                : "Alpha Fitness Keycard Renewal",
-              description: type === "basic"
-                ? "Digital keycard with QR code access"
-                : "Renew your existing keycard",
-              images: ["https://your-logo-url.com/logo.png"], // Optional: add your logo
+              name:
+                type === "renew"
+                  ? "Alpha Fitness Keycard Renewal"
+                  : "Alpha Fitness Basic Keycard",
             },
-            unit_amount: prices[type],
+            unit_amount: type === "renew" ? 100 * 100 : 150 * 100,
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success?uid=${uniqueId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/services/keycards`,
-      customer_email: email,
-      metadata: {
-        userId,
-        type,
-      },
+      metadata: { uniqueId, userId, type },
     });
 
-    return NextResponse.json({ 
-      sessionId: session.id,
-      url: session.url 
-    });
-  } catch (error) {
-    console.error("Stripe checkout error:", error);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    console.error("🔥 Checkout error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

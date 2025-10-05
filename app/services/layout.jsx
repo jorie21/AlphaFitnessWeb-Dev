@@ -1,5 +1,4 @@
 'use client'
-
 import { AnimatePresence, motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import ServicesHeader from './components/ServicesHeader'

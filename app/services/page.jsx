@@ -1,100 +1,117 @@
 "use client";
-
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Check, RefreshCcw } from "lucide-react";
 import { keycardFeature, keycardRenew } from "@/constant/features";
-import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
 
 export default function KeycardsPage() {
-  const [loading, setLoading] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [keycardStatus, setKeycardStatus] = useState(null);
+
+  // Fetch user keycard info
+  useEffect(() => {
+    const fetchKeycards = async () => {
+      if (!user) return;
+
+      const res = await fetch("/api/keycards/get", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const { keycards } = await res.json();
+
+      if (keycards?.length) {
+        const latest = keycards[0];
+        setKeycardStatus(latest.status);
+      }
+    };
+    fetchKeycards();
+  }, [user]);
 
   const handlePurchase = async (type) => {
     if (!user) {
-      toast.error("Please login to purchase a keycard");
+      toast.error("You must be logged in to checkout.");
       return;
     }
 
-    setLoading(true);
-
     try {
-      // Create checkout session
-      const response = await fetch("/api/stripe/checkout", {
+      setLoading(true);
+
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type,
           userId: user.id,
           email: user.email,
+          type,
+          services: ["Gym Access"],
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session");
-      }
-
-      // Direct redirect to Stripe Checkout URL
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("No checkout URL received");
+        toast.error(data.error || "Payment failed");
       }
-    } catch (error) {
-      console.error("Payment error:", error);
-      toast.error(error.message || "Failed to process payment");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
       setLoading(false);
     }
   };
 
+  const isRenewDisabled =
+    authLoading ||
+    loading ||
+    !user ||
+    keycardStatus !== "expired";
+
   return (
     <section className="screen flex flex-col justify-center items-center gap-8 px-4 sm:px-8">
-      {/* Heading */}
       <div className="text-center space-y-2 max-w-xl">
         <h1 className="font-russo text-3xl sm:text-4xl leading-tight">
           Get Your Alpha Fitness KeyCard
         </h1>
-        <p className="text-base sm:text-lg leading-relaxed font-arone opacity-70">
+        <p className="text-base sm:text-lg font-arone opacity-70">
           Required for all services. Choose your keycard option below.
         </p>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-6 sm:gap-8 max-w-5xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-5xl w-full">
         {/* Basic Keycard */}
-        <Card className="relative flex flex-col justify-between border-2 border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl">
+        <Card className="border-2 border-gray-700 hover:shadow-xl transition-all rounded-xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-gray-100 rounded-xl w-fit shadow-sm">
               <CreditCard className="h-8 w-8 text-gray-600" />
             </div>
             <CardTitle className="text-2xl font-russo">Basic Keycard</CardTitle>
             <CardDescription className="text-sm opacity-70 px-2">
-              Get your Alpha Fitness keycard without any services loaded
+              Get your Alpha Fitness keycard for access to facilities
             </CardDescription>
           </CardHeader>
-
           <CardContent className="text-center space-y-6">
-            <div className="space-y-1">
-              <div className="text-4xl font-bold text-gray-900">₱150</div>
-              <p className="text-sm text-gray-500">One-time fee</p>
-            </div>
-
-            <div className="space-y-3">
-              {keycardFeature.map((feature, index) => (
-                <div key={index} className="flex items-center gap-3 text-left">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-gray-700">{feature}</span>
-                </div>
-              ))}
-            </div>
+            <div className="text-4xl font-bold text-gray-900">₱150</div>
+            <p className="text-sm text-gray-500">One-time fee</p>
+            {keycardFeature.map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Check className="h-5 w-5 text-green-500" /> {f}
+              </div>
+            ))}
           </CardContent>
-
           <CardFooter>
             <Button
               disabled={loading || !user || authLoading}
@@ -107,41 +124,37 @@ export default function KeycardsPage() {
         </Card>
 
         {/* Renew Keycard */}
-        <Card className="relative flex flex-col justify-between border-2 border-secondary hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl">
+        <Card className="border-2 border-secondary hover:shadow-xl transition-all rounded-xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-red-100 rounded-full w-fit shadow-sm">
               <RefreshCcw className="h-8 w-8 text-secondary" />
             </div>
             <CardTitle className="text-2xl font-russo">Renew Keycard</CardTitle>
             <CardDescription className="text-sm opacity-70 px-2">
-              Renew your existing Alpha Fitness keycard
+              Renew your keycard once it expires.
             </CardDescription>
           </CardHeader>
-
           <CardContent className="text-center space-y-6">
-            <div className="space-y-1">
-              <div className="text-4xl font-bold text-gray-900">₱100</div>
-              <p className="text-sm text-gray-500">One-time fee</p>
-            </div>
-
-            <div className="space-y-3">
-              {keycardRenew.map((feature, index) => (
-                <div key={index} className="flex items-center gap-3 text-left">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-gray-700">{feature}</span>
-                </div>
-              ))}
-            </div>
+            <div className="text-4xl font-bold text-gray-900">₱100</div>
+            <p className="text-sm text-gray-500">One-time fee</p>
+            {keycardRenew.map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Check className="h-5 w-5 text-green-500" /> {f}
+              </div>
+            ))}
           </CardContent>
-
           <CardFooter>
             <Button
-              disabled={loading || !user || authLoading}
+              disabled={isRenewDisabled}
               onClick={() => handlePurchase("renew")}
               variant="secondary"
               className="w-full"
             >
-              {loading ? "Processing..." : !user ? "Login to Renew" : "Renew Now"}
+              {isRenewDisabled
+                ? "Available When Expired"
+                : loading
+                ? "Processing..."
+                : "Renew Now"}
             </Button>
           </CardFooter>
         </Card>
