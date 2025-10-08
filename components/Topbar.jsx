@@ -10,6 +10,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import AlphaFitness from "@/components/Alphafitness";
@@ -21,10 +22,11 @@ import ProfileDropdown from "./ProfileDropdown";
 
 export default function Topbar() {
   const { signOut, session, loading } = useAuth();
+  const [open, setOpen] = React.useState(false);
 
   const handleSmoothScroll = (e, path) => {
     if (path.startsWith("#")) {
-      e.preventDefault(); // stop Next.js routing
+      e.preventDefault();
 
       const targetId = path.replace("#", "");
       const el = document.getElementById(targetId);
@@ -32,12 +34,16 @@ export default function Topbar() {
         el.scrollIntoView({ behavior: "smooth" });
       }
       history.replaceState(null, "", " ");
+      
+      // Close mobile menu after navigation
+      setOpen(false);
     }
   };
 
   const logout = (e) => {
     e.preventDefault();
     signOut();
+    setOpen(false);
   };
 
   return (
@@ -71,7 +77,6 @@ export default function Topbar() {
 
         {/* Buttons (Desktop) */}
         {loading ? (
-          // Fallback while fetching
           <div className="hidden md:flex items-center gap-2">
             <div className="h-8 w-24 rounded-md bg-gray-200 animate-pulse"></div>
             <div className="h-8 w-24 rounded-md bg-gray-200 animate-pulse"></div>
@@ -82,71 +87,79 @@ export default function Topbar() {
             <RegistrationModal />
           </div>
         ) : (
-          <ProfileDropdown user={session?.user} logout={logout} />
+          <div className="hidden md:block">
+            <ProfileDropdown user={session?.user} logout={logout} />
+          </div>
         )}
 
         {/* Mobile Hamburger */}
-        <Sheet>
-          {/* Menu Button */}
+        <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <button className="p-2 rounded-lg hover:bg-white/10 transition">
+            <button className="p-2 rounded-lg hover:bg-gray-100 transition">
               <Menu className="h-6 w-6 text-black" />
             </button>
           </SheetTrigger>
 
-          {/* Drawer Content */}
           <SheetContent
             side="left"
-            className="text-white  shadow-2xl overflow-y-auto w-[300px] h-full"
+            className="text-white shadow-2xl overflow-y-auto w-[280px] sm:w-[300px] h-full flex flex-col"
             style={{
               background:
                 "linear-gradient(145deg, #0F2027 0%, #2C5364 50%, #4E1B1B 100%)",
             }}
           >
             {/* Logo / Header */}
-            <SheetHeader className="px-8 pt-5 pb-3 border-b border-white/10">
+            <SheetHeader className="px-6 pt-6 pb-4 border-b border-white/10">
               <SheetTitle className="flex items-center gap-2">
                 <AlphaFitness className="text-[26px]" />
               </SheetTitle>
             </SheetHeader>
 
             {/* Navigation */}
-            <nav className="flex flex-col gap-4 text-lg p-8">
+            <nav className="flex flex-col gap-4 text-lg p-6">
               {menus.map((menu, index) => (
-                <Link
-                  key={index}
-                  href={menu.path}
-                  className="group relative font-arone tracking-wide"
-                >
-                  {menu.title}
-                </Link>
+                <SheetClose asChild key={index}>
+                  <Link
+                    href={menu.path}
+                    scroll={false}
+                    onClick={(e) => handleSmoothScroll(e, menu.path)}
+                    className="group relative font-arone tracking-wide hover:text-secondary transition"
+                  >
+                    {menu.title}
+                  </Link>
+                </SheetClose>
               ))}
             </nav>
 
-            {/* Call to Actions */}
-            <div className="px-8 ">
-              <div className="flex flex-col gap-3">
-                <LoginModal>
-                  <Button
-                    variant="outlineSecondary"
-                    className="w-full font-arone text-secondary hover:scale-[1.02] transition-transform"
-                  >
-                    Sign up
-                  </Button>
-                </LoginModal>
-                <RegistrationModal>
-                  <Button
-                    variant="secondary"
-                    className="w-full text-white font-arone hover:scale-[1.02] transition-transform"
-                  >
-                    Join Now
-                  </Button>
-                </RegistrationModal>
-              </div>
+            {/* Auth Buttons (Mobile) */}
+            <div className="px-6 pb-6 border-b border-white/10">
+              {loading ? (
+                <div className="flex flex-col gap-2">
+                  <div className="h-10 w-full bg-white/20 rounded-md animate-pulse"></div>
+                  <div className="h-10 w-full bg-white/20 rounded-md animate-pulse"></div>
+                </div>
+              ) : session == null ? (
+                <div className="flex flex-col gap-3">
+                  <LoginModal />
+                  <RegistrationModal />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 py-2">
+                  <ProfileDropdown user={session?.user} logout={logout} mobile />
+                  <div className="flex flex-col">
+                    <span className="text-white font-semibold text-sm">
+                      {session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0]}
+                    </span>
+                    <span className="text-white/60 text-xs">
+                      {session?.user?.email}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer Info */}
-            <div className="px-8 pb-6 mt-6 text-sm text-white/60 border-t border-white/10">
+            <div className="px-6 py-4 text-xs text-white/60 mt-auto">
               <p>
                 &copy; {new Date().getFullYear()} Alpha Fitness. All rights
                 reserved.

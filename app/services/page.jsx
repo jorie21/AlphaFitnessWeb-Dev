@@ -1,3 +1,4 @@
+//services/page.jsx
 "use client";
 import { useEffect, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import { CreditCard, Check, RefreshCcw } from "lucide-react";
 import { keycardFeature, keycardRenew } from "@/constant/features";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
+import { keycardPurchaseSchema } from "../actions/validation/keycardPurchaseSchema.";
 
 export default function KeycardsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -45,6 +47,16 @@ export default function KeycardsPage() {
       return;
     }
 
+    // 🧠 Validate before allowing payment
+    const validation = await keycardPurchaseSchema.safeParseAsync({
+      userId: user.id,
+    });
+
+    if (!validation.success) {
+      toast.error(validation.error.issues[0].message);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -74,11 +86,48 @@ export default function KeycardsPage() {
     }
   };
 
+  const handleOTCPurchase = async (type) => {
+    if (!user) {
+      toast.error("You must be logged in to request OTC payment.");
+      return;
+    }
+
+    // 🧠 Validate before allowing OTC
+    const validation = await keycardPurchaseSchema.safeParseAsync({
+      userId: user.id,
+    });
+
+    if (!validation.success) {
+      toast.error(validation.error.issues[0].message);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/keycards/otc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, type }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success("Your keycard is pending. Please pay over the counter.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while processing OTC request.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isRenewDisabled =
-    authLoading ||
-    loading ||
-    !user ||
-    keycardStatus !== "expired";
+    authLoading || loading || !user || keycardStatus !== "expired";
 
   return (
     <section className="screen flex flex-col justify-center items-center gap-8 px-4 sm:px-8">
@@ -112,13 +161,26 @@ export default function KeycardsPage() {
               </div>
             ))}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-3">
             <Button
               disabled={loading || !user || authLoading}
               onClick={() => handlePurchase("basic")}
               className="w-full"
             >
-              {loading ? "Processing..." : !user ? "Login to Purchase" : "Get Basic Keycard"}
+              {loading
+                ? "Processing..."
+                : !user
+                ? "Login to Purchase"
+                : "Pay Online (₱150)"}
+            </Button>
+
+            <Button
+              disabled={loading || !user || authLoading}
+              onClick={() => handleOTCPurchase("basic")}
+              variant="outline"
+              className="w-full"
+            >
+              Pay Over the Counter (₱150)
             </Button>
           </CardFooter>
         </Card>

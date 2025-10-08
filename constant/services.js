@@ -1,7 +1,7 @@
 export const MembershipPlans =[ 
     {
         title: "1 Month",
-        Price: "₱1,399",
+        Price: "₱980",
         features: [
             "Unlimited gym access",
             "Jogging track",
@@ -9,19 +9,10 @@ export const MembershipPlans =[
         ]
 
     },
-    {
-        title: "2 Months",
-        Price: "₱1,399",
-        features: [
-            "Unlimited gym access",
-            "Jogging track",
-            "Equipment access"
-        ]
 
-    },
     {
         title: "3 Months",
-        Price: "₱1,399",
+        Price: "₱2,937",
         features: [
             "Unlimited gym access",
             "Jogging track",
@@ -29,19 +20,20 @@ export const MembershipPlans =[
         ]
 
     },
-    {
-        title: "4 Months",
-        Price: "₱1,399",
-        features: [
-            "Unlimited gym access",
-            "Jogging track",
-            "Equipment access"
-        ]
 
-    },
     {
         title: "6 Months",
-        Price: "₱1,399",
+        Price: "₱5,875",
+        features: [
+            "Unlimited gym access",
+            "Jogging track",
+            "Equipment access"
+        ]
+
+    },
+      {
+        title: "12 Months",
+        Price: "₱11,761",
         features: [
             "Unlimited gym access",
             "Jogging track",

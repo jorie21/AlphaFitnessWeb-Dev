@@ -1,17 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import Image from "next/image";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { personalTraining } from "@/constant/services";
-import { fitnessCoach } from "@/constant/services";
-import coach from "@/public/icons/coach.png";
+//app/personal-training/page.jsx
 import PackageDeals from "./PackageDeals";
 import PerSessionRates from "./PerSessionRates";
 import FitnessTrainingCoach from "./FitnessTrainingCoach";
