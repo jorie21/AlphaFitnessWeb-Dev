@@ -15,12 +15,13 @@ import { keycardFeature, keycardRenew } from "@/constant/features";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
 import { keycardPurchaseSchema } from "../actions/validation/keycardPurchaseSchema.";
+import { useRouter } from "next/navigation";
 
 export default function KeycardsPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [keycardStatus, setKeycardStatus] = useState(null);
-
+  const router = useRouter()
   // Fetch user keycard info
   useEffect(() => {
     const fetchKeycards = async () => {
@@ -117,6 +118,7 @@ export default function KeycardsPage() {
         toast.error(data.error);
       } else {
         toast.success("Your keycard is pending. Please pay over the counter.");
+        router.push(`/payment/serviceSuccess?id=${data.uniqueId}`)
       }
     } catch (err) {
       console.error(err);

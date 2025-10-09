@@ -7,19 +7,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(req) {
   try {
-    const { userId, plan } = await req.json();
+    const { userId, type = "basic" } = await req.json();
 
-    if (!userId || !plan?.title || !plan?.Price) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    const priceNumber = parseInt(plan.Price.replace(/[^0-9]/g, ""));
-    if (isNaN(priceNumber)) {
-      return NextResponse.json({ error: "Invalid price format" }, { status: 400 });
-    }
-
-    // Log for debugging
-    console.log("Creating Stripe session for:", { userId, planTitle: plan.title, price: priceNumber });
+    // Generate unique ID but DON'T insert yet
+    const uniqueId = `KEY-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -27,21 +22,25 @@ export async function POST(req) {
         {
           price_data: {
             currency: "php",
-            product_data: { name: plan.title },
-            unit_amount: priceNumber * 100,
+            product_data: {
+              name:
+                type === "renew"
+                  ? "Alpha Fitness Keycard Renewal"
+                  : "Alpha Fitness Basic Keycard",
+            },
+            unit_amount: type === "renew" ? 100 * 100 : 150 * 100,
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success?service=${plan.title}`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success?uid=${uniqueId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/services`,
-      metadata: { userId, planTitle: plan.title, price: plan.Price },
+      metadata: { uniqueId, userId, type },
     });
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
-    console.error("Service Checkout Error:", err);
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+//api/keycards/otc/route.js
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import QRCode from "qrcode";

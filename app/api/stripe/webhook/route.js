@@ -1,7 +1,5 @@
-//api/stripe/webhook/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-
 import { supabase } from "@/lib/supabaseClient";
 import QRCode from "qrcode";
 
@@ -9,6 +7,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 export async function POST(req) {
   const sig = req.headers.get("stripe-signature");
@@ -27,7 +31,7 @@ export async function POST(req) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { uniqueId, userId } = session.metadata || {};
+    const { uniqueId, userId, type } = session.metadata || {};
 
     if (!uniqueId || !userId) {
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
@@ -39,18 +43,19 @@ export async function POST(req) {
     const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
     const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-    const { error: updateError } = await supabase
-      .from("keycards")
-      .update({
+    const { error: insertError } = await supabase.from("keycards").insert([
+      {
+        user_id: userId,
+        unique_id: uniqueId,
         status: "active",
+        type: type || "basic",
         expires_at: expiresAt,
         qr_code_url: qrCodeUrl,
-      })
-      .eq("unique_id", uniqueId)
-      .eq("user_id", userId);
+      },
+    ]);
 
-    if (updateError) {
-      return NextResponse.json({ error: "Failed to update keycard" }, { status: 500 });
+    if (insertError) {
+      return NextResponse.json({ error: "Failed to create keycard" }, { status: 500 });
     }
   }
 

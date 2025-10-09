@@ -1,7 +1,5 @@
-//api/stripe/checkout/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { supabase } from "@/lib/supabaseClient";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -15,18 +13,8 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
+    // Generate unique ID but DON'T insert yet
     const uniqueId = `KEY-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
-
-    const { error: insertError } = await supabase.from("keycards").insert([
-      {
-        user_id: userId,
-        unique_id: uniqueId,
-        status: "pending",
-        type,
-      },
-    ]);
-
-    if (insertError) throw insertError;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -47,7 +35,7 @@ export async function POST(req) {
       ],
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success?uid=${uniqueId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/services/keycards`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/services`,
       metadata: { uniqueId, userId, type },
     });
 
