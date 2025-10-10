@@ -1,3 +1,4 @@
+//app/constant/services.js
 export const MembershipPlans =[ 
     {
         title: "1 Month",
