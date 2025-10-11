@@ -21,7 +21,7 @@ export default function KeycardsPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [keycardStatus, setKeycardStatus] = useState(null);
-  const router = useRouter()
+  const router = useRouter();
   // Fetch user keycard info
   useEffect(() => {
     const fetchKeycards = async () => {
@@ -96,6 +96,7 @@ export default function KeycardsPage() {
     // 🧠 Validate before allowing OTC
     const validation = await keycardPurchaseSchema.safeParseAsync({
       userId: user.id,
+      type,
     });
 
     if (!validation.success) {
@@ -118,7 +119,7 @@ export default function KeycardsPage() {
         toast.error(data.error);
       } else {
         toast.success("Your keycard is pending. Please pay over the counter.");
-        router.push(`/payment/serviceSuccess?id=${data.uniqueId}`)
+        router.push(`/payment/serviceSuccess?id=${data.uniqueId}`);
       }
     } catch (err) {
       console.error(err);

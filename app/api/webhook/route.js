@@ -1,3 +1,4 @@
+//api/webhook
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabase } from "@/lib/supabaseClient";
@@ -21,7 +22,10 @@ export async function POST(req) {
 
   if (!sig) {
     console.error("❌ Missing stripe-signature");
-    return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing stripe-signature" },
+      { status: 400 }
+    );
   }
 
   let event;
@@ -37,17 +41,22 @@ export async function POST(req) {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+
       const { type } = session.metadata || {};
 
       console.log("📦 Session metadata:", session.metadata);
 
       // Route to appropriate handler based on 'type'
       if (type === "keycard") {
-        await handleKeycardCheckout(session);
+        const { keycardType } = session.metadata;
+
+        if (keycardType === "renew") {
+          await handleRenewKeycard(session);
+        } else {
+          await handleKeycardCheckout(session);
+        }
       } else if (type === "service") {
         await handleServiceCheckout(session);
-      } else {
-        console.warn("⚠️ Unknown checkout type:", type);
       }
     }
 
@@ -77,16 +86,19 @@ async function handleKeycardCheckout(session) {
   const qrCodeUrl = await QRCode.toDataURL(qrData);
 
   // Insert keycard into database (matching your exact schema)
-  const { data, error } = await supabase.from("keycards").insert([
-    {
-      user_id: userId,
-      unique_id: uniqueId,
-      status: "active", // matches keycard_status enum
-      type: keycardType || "basic", // matches your column name
-      expires_at: expiresAt.toISOString(),
-      qr_code_url: qrCodeUrl,
-    },
-  ]).select();
+  const { data, error } = await supabase
+    .from("keycards")
+    .insert([
+      {
+        user_id: userId,
+        unique_id: uniqueId,
+        status: "active", // matches keycard_status enum
+        type: keycardType || "basic", // matches your column name
+        expires_at: expiresAt.toISOString(),
+        qr_code_url: qrCodeUrl,
+      },
+    ])
+    .select();
 
   if (error) {
     console.error("❌ Keycard insert error:", error);
@@ -125,20 +137,25 @@ async function handleServiceCheckout(session) {
   const keycardId = keycardData?.id || null;
 
   if (!keycardId) {
-    console.warn("⚠️ User has no active keycard. Service will be created without keycard link.");
+    console.warn(
+      "⚠️ User has no active keycard. Service will be created without keycard link."
+    );
   } else {
     console.log("✅ Found keycard to link:", keycardId);
   }
 
   // Insert service into database (matching your exact schema)
-  const { data, error } = await supabase.from("keycards_services").insert([
-    {
-      user_id: userId,
-      keycard_id: keycardId, // ✅ Link to user's active keycard
-      service_name,
-      price: parseFloat(price), // numeric(10, 2)
-    },
-  ]).select();
+  const { data, error } = await supabase
+    .from("keycards_services")
+    .insert([
+      {
+        user_id: userId,
+        keycard_id: keycardId, // ✅ Link to user's active keycard
+        service_name,
+        price: parseFloat(price), // numeric(10, 2)
+      },
+    ])
+    .select();
 
   if (error) {
     console.error("❌ Service insert error:", error);
@@ -146,4 +163,49 @@ async function handleServiceCheckout(session) {
   }
 
   console.log("✅ Service inserted successfully:", data);
+}
+
+// ✅ Handle keycard renewal (update existing instead of inserting new)
+async function handleRenewKeycard(session) {
+  const { userId } = session.metadata;
+
+  if (!userId) throw new Error("Missing userId in renewal metadata");
+
+  console.log("🔄 Renewing keycard for user:", userId);
+
+  // Find the user's most recent expired keycard
+  const { data: expiredCard, error: findError } = await supabase
+    .from("keycards")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "expired")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (findError || !expiredCard) {
+    console.warn("⚠️ No expired keycard found for renewal:", userId);
+    return;
+  }
+
+  // Extend expiration (1 year from now)
+  const newExpiry = new Date();
+  newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
+  // Update the existing keycard instead of inserting a new one
+  const { error: updateError } = await supabase
+    .from("keycards")
+    .update({
+      status: "active",
+      expires_at: newExpiry.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", expiredCard.id);
+
+  if (updateError) {
+    console.error("❌ Renewal failed:", updateError);
+    throw new Error(updateError.message);
+  }
+
+  console.log("✅ Keycard renewed successfully:", expiredCard.id);
 }
