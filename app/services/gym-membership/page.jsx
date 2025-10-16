@@ -1,4 +1,4 @@
-//app/services/gym-membership/page.jsx
+// app/services/gym-membership/page.jsx
 "use client";
 
 import {
@@ -21,29 +21,54 @@ import { useAuth } from "@/context/authContext";
 
 export default function GymMembershipPage() {
   const { user } = useAuth();
-const handleCheckout = async (plan) => {
-  if (!user) return toast.error("Sign in first!");
 
-  try {
-    const res = await fetch("/api/service/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, plan }),
-    });
+  // ✅ Online checkout (Stripe)
+  const handleCheckout = async (plan) => {
+    if (!user) return toast.error("Sign in first!");
 
-    const data = await res.json().catch(() => {
-      throw new Error("Invalid server response");
-    });
+    try {
+      const res = await fetch("/api/service/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, plan, paymentMethod: "online" }),
+      });
 
-    if (!res.ok) throw new Error(data?.error || "Checkout failed");
+      const data = await res.json().catch(() => {
+        throw new Error("Invalid server response");
+      });
 
-    window.location.href = data.url;
-  } catch (err) {
-    console.error("Checkout Error:", err);
-    toast.error(err.message);
-  }
-};
+      if (!res.ok) throw new Error(data?.error || "Checkout failed");
 
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Checkout Error:", err);
+      toast.error(err.message);
+    }
+  };
+
+  // ✅ OTC checkout
+  const handleOTCCheckout = async (plan) => {
+    if (!user) return toast.error("Sign in first!");
+
+    try {
+      const res = await fetch("/api/service/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, plan, paymentMethod: "otc" }),
+      });
+
+      const data = await res.json().catch(() => {
+        throw new Error("Invalid server response");
+      });
+
+      if (!res.ok) throw new Error(data?.error || "OTC Checkout failed");
+
+      toast.success("✅ OTC membership request submitted! Pending approval.");
+    } catch (err) {
+      console.error("OTC Checkout Error:", err);
+      toast.error(err.message);
+    }
+  };
 
   return (
     <section className="screen flex flex-col justify-center items-center gap-8">
@@ -86,18 +111,14 @@ const handleCheckout = async (plan) => {
                   <div className="mx-auto mb-4 p-3 rounded-lg w-fit">
                     <Dumbbell className="h-8 w-8 text-secondary" />
                   </div>
-                  <CardTitle className="text-2xl font-russo">
-                    {Membership.title}
-                  </CardTitle>
+                  <CardTitle className="text-2xl font-russo">{Membership.title}</CardTitle>
                   <CardDescription className="hidden">
                     Get your Alpha Fitness keycard without any services loaded
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="text-center space-y-6">
-                  <div className="text-4xl font-russo text-secondary">
-                    {Membership.Price}
-                  </div>
+                  <div className="text-4xl font-russo text-secondary">{Membership.Price}</div>
 
                   <div className="space-y-3 text-left">
                     {Membership.features?.map((feature, i) => (
@@ -108,14 +129,22 @@ const handleCheckout = async (plan) => {
                     ))}
                   </div>
 
-                  {/* ✅ Button now functional */}
-                  <Button
-                    variant="secondary"
-                    className="text-white w-full mt-4"
-                    onClick={() => handleCheckout(Membership)}
-                  >
-                    Select Plan
-                  </Button>
+                  <div className="flex flex-col gap-3 mt-4">
+                    <Button
+                      variant="secondary"
+                      className="text-white w-full"
+                      onClick={() => handleCheckout(Membership)}
+                    >
+                      Pay Online
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleOTCCheckout(Membership)}
+                    >
+                      Pay OTC
+                    </Button>
+                  </div>
                 </CardContent>
               </div>
             </Card>

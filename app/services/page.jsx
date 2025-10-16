@@ -42,50 +42,74 @@ export default function KeycardsPage() {
     fetchKeycards();
   }, [user]);
 
-  const handlePurchase = async (type) => {
-    if (!user) {
-      toast.error("You must be logged in to checkout.");
-      return;
-    }
+const handlePurchase = async (type) => {
+  if (!user) {
+    toast.error("You must be logged in to checkout.");
+    return;
+  }
 
-    // 🧠 Validate before allowing payment
-    const validation = await keycardPurchaseSchema.safeParseAsync({
-      userId: user.id,
+  // 🧠 Check if user already has a keycard
+  try {
+    const res = await fetch("/api/keycards/get", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id }),
     });
 
-    if (!validation.success) {
-      toast.error(validation.error.issues[0].message);
-      return;
-    }
+    const { keycards } = await res.json();
 
-    try {
-      setLoading(true);
-
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          email: user.email,
-          type,
-          services: ["Gym Access"],
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error(data.error || "Payment failed");
+    if (keycards?.length > 0) {
+      const latest = keycards[0];
+      // If they already have an active or pending keycard, block new purchase
+      if (latest.status === "active" || latest.status === "pending") {
+        toast.error("You already have an active keycard.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Error checking keycard:", err);
+    toast.error("Failed to verify keycard status.");
+    return;
+  }
+
+  // 🧠 Validate before allowing payment
+  const validation = await keycardPurchaseSchema.safeParseAsync({
+    userId: user.id,
+  });
+
+  if (!validation.success) {
+    toast.error(validation.error.issues[0].message);
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        email: user.email,
+        type,
+        services: ["Gym Access"],
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      toast.error(data.error || "Payment failed");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOTCPurchase = async (type) => {
     if (!user) {
@@ -119,7 +143,7 @@ export default function KeycardsPage() {
         toast.error(data.error);
       } else {
         toast.success("Your keycard is pending. Please pay over the counter.");
-        router.push(`/payment/serviceSuccess?id=${data.uniqueId}`);
+        router.push(`/payment/otcSuccess?id=${data.uniqueId}`);
       }
     } catch (err) {
       console.error(err);

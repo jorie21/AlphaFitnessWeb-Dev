@@ -1,8 +1,9 @@
-//api/webhook
+// app/api/webhook/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabase } from "@/lib/supabaseClient";
 import QRCode from "qrcode";
+import crypto from "crypto";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -11,9 +12,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 export async function POST(req) {
@@ -21,7 +20,7 @@ export async function POST(req) {
   const body = await req.text();
 
   if (!sig) {
-    console.error("❌ Missing stripe-signature");
+    console.error("Missing stripe-signature header");
     return NextResponse.json(
       { error: "Missing stripe-signature" },
       { status: 400 }
@@ -32,168 +31,113 @@ export async function POST(req) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
   } catch (err) {
-    console.error("⚠️ Webhook signature verification failed:", err.message);
+    console.error(
+      "⚠️ Webhook signature verification failed:",
+      err?.message || err
+    );
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  console.log("✅ Webhook event received:", event.type);
+  console.log("✅ Webhook event:", event.type);
 
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-
       const { type } = session.metadata || {};
 
-      console.log("📦 Session metadata:", session.metadata);
+      console.log("✅ Webhook event: checkout.session.completed");
+      console.log("🔹 Metadata type:", type);
 
-      // Route to appropriate handler based on 'type'
-      if (type === "keycard") {
-        const { keycardType } = session.metadata;
-
-        if (keycardType === "renew") {
-          await handleRenewKeycard(session);
+      try {
+        if (type === "keycard") {
+          const { keycardType } = session.metadata;
+          if (keycardType === "renew") await handleRenewKeycard(session);
+          else await handleKeycardCheckout(session);
+        } else if (type === "membership") {
+          console.log("🔥 Handling membership checkout...");
+          await handleMembershipCheckout(session);
         } else {
-          await handleKeycardCheckout(session);
+          console.warn("⚠️ Unknown or skipped checkout type:", type);
         }
-      } else if (type === "service") {
-        await handleServiceCheckout(session);
+      } catch (err) {
+        console.error("❌ Error handling checkout.session.completed:", err);
       }
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("❌ Webhook processing error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("❌ Webhook processing error:", err?.message || err);
+    return NextResponse.json(
+      { error: err?.message || "Webhook processing error" },
+      { status: 500 }
+    );
   }
 }
 
-// Handle keycard purchases
+/* ------------------------
+   Keycard Checkout
+   ------------------------ */
 async function handleKeycardCheckout(session) {
-  const { uniqueId, userId, keycardType } = session.metadata;
+  const metadata = session.metadata || {};
+  const uniqueId = metadata.uniqueId || metadata.unique_id;
+  const userId = metadata.userId || metadata.user_id;
+  const keycardType = metadata.keycardType || metadata.keycard_type || "basic";
 
-  if (!uniqueId || !userId) {
+  if (!uniqueId || !userId)
     throw new Error("Missing uniqueId or userId in metadata");
-  }
 
-  console.log("🎫 Processing keycard checkout...");
-
-  // Set expiration date (1 year from now)
   const expiresAt = new Date();
   expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-  // Generate QR code
   const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
   const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-  // Insert keycard into database (matching your exact schema)
   const { data, error } = await supabase
     .from("keycards")
     .insert([
       {
         user_id: userId,
         unique_id: uniqueId,
-        status: "active", // matches keycard_status enum
-        type: keycardType || "basic", // matches your column name
+        status: "active",
+        type: keycardType,
         expires_at: expiresAt.toISOString(),
         qr_code_url: qrCodeUrl,
       },
     ])
     .select();
 
-  if (error) {
-    console.error("❌ Keycard insert error:", error);
-    throw new Error(error.message);
-  }
-
-  console.log("✅ Keycard created successfully:", data);
+  if (error) throw new Error(error.message);
+  console.log("✅ Keycard created:", data);
 }
 
-// Handle service purchases (gym memberships)
-async function handleServiceCheckout(session) {
-  const { userId, service_name, price } = session.metadata;
-
-  if (!userId || !service_name || !price) {
-    throw new Error("Missing userId, service_name, or price in metadata");
-  }
-
-  console.log("🏋️ Processing service checkout...");
-
-  // Find user's active keycard to link the service to
-  const { data: keycardData, error: keycardError } = await supabase
-    .from("keycards")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  if (keycardError && keycardError.code !== "PGRST116") {
-    // PGRST116 = no rows returned (user has no keycard yet)
-    console.error("❌ Error fetching keycard:", keycardError);
-    throw new Error(keycardError.message);
-  }
-
-  const keycardId = keycardData?.id || null;
-
-  if (!keycardId) {
-    console.warn(
-      "⚠️ User has no active keycard. Service will be created without keycard link."
-    );
-  } else {
-    console.log("✅ Found keycard to link:", keycardId);
-  }
-
-  // Insert service into database (matching your exact schema)
-  const { data, error } = await supabase
-    .from("keycards_services")
-    .insert([
-      {
-        user_id: userId,
-        keycard_id: keycardId, // ✅ Link to user's active keycard
-        service_name,
-        price: parseFloat(price), // numeric(10, 2)
-      },
-    ])
-    .select();
-
-  if (error) {
-    console.error("❌ Service insert error:", error);
-    throw new Error(error.message);
-  }
-
-  console.log("✅ Service inserted successfully:", data);
-}
-
-// ✅ Handle keycard renewal (update existing instead of inserting new)
+/* ------------------------
+   Renew Keycard
+   ------------------------ */
 async function handleRenewKeycard(session) {
-  const { userId } = session.metadata;
-
+  const metadata = session.metadata || {};
+  const userId = metadata.userId || metadata.user_id;
   if (!userId) throw new Error("Missing userId in renewal metadata");
 
-  console.log("🔄 Renewing keycard for user:", userId);
-
-  // Find the user's most recent expired keycard
-  const { data: expiredCard, error: findError } = await supabase
+  const { data: expiredCard, error: selectErr } = await supabase
     .from("keycards")
     .select("*")
     .eq("user_id", userId)
     .eq("status", "expired")
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (findError || !expiredCard) {
+  if (selectErr) throw new Error(selectErr.message);
+
+  if (!expiredCard) {
     console.warn("⚠️ No expired keycard found for renewal:", userId);
     return;
   }
 
-  // Extend expiration (1 year from now)
   const newExpiry = new Date();
   newExpiry.setFullYear(newExpiry.getFullYear() + 1);
 
-  // Update the existing keycard instead of inserting a new one
-  const { error: updateError } = await supabase
+  const { error: updateErr } = await supabase
     .from("keycards")
     .update({
       status: "active",
@@ -202,10 +146,136 @@ async function handleRenewKeycard(session) {
     })
     .eq("id", expiredCard.id);
 
-  if (updateError) {
-    console.error("❌ Renewal failed:", updateError);
-    throw new Error(updateError.message);
+  if (updateErr) throw new Error(updateErr.message);
+  console.log("✅ Keycard renewed successfully:", expiredCard.id);
+}
+
+/* ------------------------
+   Membership handler
+   ------------------------ */
+async function handleMembershipCheckout(session) {
+  const metadata = session.metadata || {};
+  const userId = metadata.userId || metadata.user_id;
+  const priceRaw = metadata.price || metadata.amount;
+  const referenceId = metadata.referenceId || metadata.reference_id || crypto.randomUUID();
+
+  if (!userId || !priceRaw) {
+    throw new Error("Missing userId or price in metadata");
   }
 
-  console.log("✅ Keycard renewed successfully:", expiredCard.id);
+  const plan_title = "Membership";
+  const price = parseFloat(String(priceRaw));
+
+  // _________Find user's active keycard_________
+  const { data: keycardData, error: keycardError } = await supabase
+    .from("keycards")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (keycardError) throw new Error(keycardError.message);
+  const keycardId = keycardData?.id || null;
+  if (!keycardId) throw new Error("No active keycard found for user");
+
+  // _______Check duplicate reference_________
+  const { data: existingRef, error: refErr } = await supabase
+    .from("memberships")
+    .select("id")
+    .eq("reference_id", referenceId)
+    .maybeSingle();
+
+  if (refErr) throw new Error(refErr.message);
+  if (existingRef) {
+    console.log("⚠️ Duplicate membership webhook ignored:", referenceId);
+    return;
+  }
+
+  // __________Find existing active membership__________
+  const { data: activeMembership, error: activeErr } = await supabase
+    .from("memberships")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("end_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeErr) throw new Error(activeErr.message);
+
+  // ____________Detect how many months to add based on plan price or name___________
+  const monthsToAdd = (() => {
+    const s = String(metadata.service_name || "").toLowerCase();
+    if (s.includes("12")) return 12;
+    if (s.includes("6")) return 6;
+    if (s.includes("3")) return 3;
+    return 1;
+  })();
+
+  // _________Helper to add months safely_________
+  const addMonths = (date, months) => {
+    const d = new Date(date.getTime());
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() < day) d.setDate(0);
+    return d;
+  };
+
+  if (activeMembership) {
+    // Extend membership
+    const existingEnd = new Date(activeMembership.end_date);
+    const newEnd = addMonths(existingEnd, monthsToAdd);
+    const totalMonths = (activeMembership.total_months || 0) + monthsToAdd;
+    const newPrice = (activeMembership.price || 0) + price;
+
+    // 🧮 Recalculate days left
+    const today = new Date();
+    const daysLeft = Math.ceil((newEnd - today) / (1000 * 60 * 60 * 24));
+
+    const { error: updateError } = await supabase
+      .from("memberships")
+      .update({
+        end_date: newEnd.toISOString(),
+        updated_at: new Date().toISOString(),
+        total_months: totalMonths,
+        plan_title,
+        price: newPrice, // ✅ Added price accumulation
+        days_left: daysLeft, // ✅ Keep your existing logic
+      })
+      .eq("id", activeMembership.id);
+
+    if (updateError) throw new Error(updateError.message);
+
+    console.log(
+      `✅ Extended membership for user ${userId} to ${newEnd.toISOString()} (${totalMonths} months total, ₱${newPrice} total)`
+    );
+  } else {
+    // Create new membership
+    const startDate = new Date();
+    const endDate = addMonths(startDate, monthsToAdd);
+    const daysLeft = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+    const { error: insertError } = await supabase.from("memberships").insert([
+      {
+        user_id: userId,
+        keycard_id: keycardId,
+        reference_id: referenceId,
+        plan_title,
+        price,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        status: "active",
+        total_months: monthsToAdd,
+        days_left: daysLeft, // ✅ Added
+      },
+    ]);
+
+    if (insertError) throw new Error(insertError.message);
+
+    console.log(
+      `✅ New membership created for user ${userId} until ${endDate.toISOString()} (${monthsToAdd} months)`
+    );
+  }
 }

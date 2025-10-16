@@ -31,7 +31,7 @@ export default function LoginModal() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotEmailError, setForgotEmailError] = useState("");
-  const { signIn, loading, signInWithGoogle, resetPassword} = useAuth();
+  const { signIn, loading, signInWithGoogle, resetPassword, signInWithFacebook} = useAuth();
   const router = useRouter();
 
   // Handle input change
@@ -257,6 +257,7 @@ export default function LoginModal() {
                         type="button"
                         variant="outline"
                         className="flex-1 font-arone text-xs shadow-md hover:bg-blue-50 hover:border-[#1877F2] hover:text-[#1877F2] h-9"
+                        onClick={signInWithFacebook}
                       >
                         <Image
                           src="/icons/facebook.png"
