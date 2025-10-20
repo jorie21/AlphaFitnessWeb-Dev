@@ -45,11 +45,12 @@ export const MembershipPlans =[
 ]
 
 export const GroupClasses = 
-    ["Boxing", "Muay Thai", "Grappling", "M.M.A", "KickBoxing", "Tabata", "H.I.I.T"]
+    ["Boxing", "Muay Thai", "M.M.A"]
 
-export const timeSlots = ["9:00 AM - 11:00 AM", "4:00 PM - 6:00 PM", "6:30 PM - 8:30 PM"]
+export const timeSlots = ["4:00 PM - 6:00 PM", "6:30 PM - 8:30 PM"]
 
-export const personalTraining = [
+//app/constant/services.js
+export const packageSession = [
   {
     logo: '/icons/gloves.png',
     title: 'Boxing',
@@ -80,6 +81,40 @@ export const personalTraining = [
     price: '₱5,000',
     session: '12 Session',
     perSession: '417/Session',
+    features: [
+      'One-on-one training',
+      'Personalized program',
+      'Expert instruction'
+    ]
+  },
+];
+
+export const perSession = [
+  {
+    logo: '/icons/gloves.png',
+    title: 'Boxing',
+    price: '₱350',
+    perSession: '329/Session',
+    features: [
+      'One-on-one training',
+      'Personalized program',
+      'Expert instruction'
+    ]
+  },
+  {
+    logo: '/icons/kickboxing.png',
+    title: 'Muay Thai / Kickboxing',
+    price: '₱400',
+    features: [
+      'One-on-one training',
+      'Personalized program',
+      'Expert instruction'
+    ]
+  },
+  {
+    logo: '/icons/MMA.png',
+    title: 'M.M.A',
+    price: '₱500',
     features: [
       'One-on-one training',
       'Personalized program',

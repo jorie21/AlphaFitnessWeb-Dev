@@ -1,4 +1,4 @@
-'use client'
+
 import AboutSection from "@/components/sections/AboutSection";
 import TestimonialSection from "@/components/sections/TestimonialSection";
 import AnnouncementSection from "@/components/sections/AnnouncementSection";

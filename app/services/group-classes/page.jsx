@@ -1,9 +1,8 @@
-//app/services/group-classes.jsx
+//app/services/group-classes/page.jsx
+"use client";
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -11,22 +10,56 @@ import {
 import { Button } from "@/components/ui/button";
 import { Clock, UsersRound } from "lucide-react";
 import { GroupClasses, timeSlots } from "@/constant/services";
+import { useAuth } from "@/context/authContext";
+import { toast } from "sonner";
 
 export default function GroupClassesPage() {
+  const { user } = useAuth();
+
+  const handleCheckout = async () => {
+    if (!user) {
+      toast.error("Please log in first.");
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/services/group-classes/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          className: "Group Classes", // Default to the overall package name
+          price: 2599, // Matches the displayed price (₱2,599)
+          // paymentMethod: "online",  // Optional: Remove if not needed
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url; // ✅ redirect to Stripe checkout
+      } else {
+        toast.error(data.error || "Something went wrong.");
+      }
+    } catch (error) {
+      console.error("Checkout Error:", error);
+      toast.error("Failed to start checkout.");
+    }
+  };
+
   return (
     <section className="screen px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex flex-col justify-center items-center gap-6 sm:gap-8 lg:gap-12">
       <div className="space-y-6 sm:space-y-8 w-full sm:w-auto">
         {/* Header */}
         <div className="text-center place-items-center w-full space-y-2 px-2">
           <h1 className="font-russo text-[20px] sm:text-[24px] lg:text-3xl leading-snug">
-            Get Your Alpha Fitness KeyCard
+            Group Classes
           </h1>
           <p className="text-sm sm:text-base leading-relaxed max-w-prose font-arone opacity-70">
-            Required for all services. Choose your keycard option below.
+            Join our expert-led group training sessions.
           </p>
         </div>
 
-        {/* KEY CARDS */}
+        {/* Card */}
         <div className="place-content-center w-full">
           <Card className="relative justify-between w-full sm:w-auto p-4 sm:p-5 overflow-hidden gradient-border">
             {/* Card Icon */}
@@ -40,10 +73,9 @@ export default function GroupClassesPage() {
             </CardHeader>
 
             <CardContent className="text-center space-y-6">
-              {/* Price */}
               <div className="space-y-1 font-arone">
                 <div className="text-3xl sm:text-4xl font-russo text-secondary">
-                  ₱3,500
+                  ₱2,599
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500">
                   1 Month Unlimited
@@ -53,7 +85,6 @@ export default function GroupClassesPage() {
                 </p>
               </div>
 
-              {/* Class buttons */}
               <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
                 {GroupClasses.map((className) => (
                   <Button
@@ -69,9 +100,8 @@ export default function GroupClassesPage() {
 
             {/* Footer */}
             <CardFooter className="pt-4 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-              {/* Time openers */}
-              <div className="w-full flex justify-center items-center lg:flex lg:justify-start ">
-                <div className="flex  gap-3 sm:gap-4">
+              <div className="w-full flex justify-center items-center lg:flex lg:justify-start">
+                <div className="flex gap-3 sm:gap-4">
                   <div className="flex flex-col gap-1">
                     <div className="flex gap-2 items-center">
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -90,23 +120,13 @@ export default function GroupClassesPage() {
                       ))}
                     </ul>
                   </div>
-
-                  <div className="flex flex-col gap-1">
-                    <div className="flex gap-2 items-center">
-                      <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="font-arone font-bold text-sm sm:text-base">
-                        Sunday:
-                      </span>
-                    </div>
-                    <span className="text-xs sm:text-sm">By Appointment</span>
-                  </div>
                 </div>
               </div>
 
-              {/* Button */}
               <div className="w-full sm:flex-1">
                 <Button
-                  variant={"secondary"}
+                  onClick={handleCheckout}
+                  variant="secondary"
                   className="text-white w-full text-sm sm:text-base"
                 >
                   Join Group Classes

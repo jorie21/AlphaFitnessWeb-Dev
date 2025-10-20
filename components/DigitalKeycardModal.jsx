@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Copy, Check, AlertCircle, Calendar, CreditCard } from "lucide-react";
+import { X, Copy, Check, AlertCircle, Calendar, CreditCard, Star } from "lucide-react"; // Added Star for VIP badge
 import Image from "next/image";
 import { toast } from "sonner";
 import AlphaFitness from "./Alphafitness";
@@ -43,6 +43,11 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
       default:
         return "bg-gray-100 text-gray-800 border-gray-300";
     }
+  };
+
+  // Helper to get keycard type label
+  const getKeycardTypeLabel = (keycard) => {
+    return keycard.is_vip ? "VIP Keycard" : "Basic Keycard";
   };
 
   // If no keycard exists
@@ -90,9 +95,17 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
         <div className="space-y-4 sm:space-y-6 mt-4">
           {/* Keycard Display */}
           <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-6 shadow-2xl border border-gray-700">
-            {/* Status Badge */}
-            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(activeKeycard.status)}`}>
-              {activeKeycard.status}
+            {/* Status and VIP Badges */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(activeKeycard.status)}`}>
+                {activeKeycard.status}
+              </div>
+              {activeKeycard.is_vip && (
+                <div className="px-3 py-1 rounded-full text-xs font-bold uppercase border bg-yellow-100 text-yellow-800 border-yellow-300 flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  VIP
+                </div>
+              )}
             </div>
 
             {/* Card Header */}
@@ -147,13 +160,13 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
                     <span>VALID UNTIL</span>
                   </div>
                   <p className="text-base sm:text-lg font-semibold">
-                    {formatDate(activeKeycard.expires_at)}
+                    {activeKeycard.is_vip ? "Lifetime Access" : formatDate(activeKeycard.expires_at)}
                   </p>
                 </div>
 
                 <div className="pt-2 border-t border-gray-700">
                   <p className="text-[10px] sm:text-xs text-gray-400">
-                    Type: <span className="text-white font-semibold uppercase">{activeKeycard.type}</span>
+                    Type: <span className="text-white font-semibold">{getKeycardTypeLabel(activeKeycard)}</span>
                   </p>
                   <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
                     Issued: <span className="text-white">{formatDate(activeKeycard.created_at)}</span>
@@ -184,7 +197,7 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">4.</span>
-                <span>Keep your keycard valid by renewing before expiration</span>
+                <span>Keep your keycard valid by renewing before expiration (VIP keycards never expire)</span>
               </li>
             </ul>
           </div>
@@ -202,7 +215,7 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
                     <div className="min-w-0 flex-1">
                       <p className="font-mono text-xs sm:text-sm font-bold truncate">{kc.unique_id}</p>
                       <p className="text-[10px] sm:text-xs text-gray-600">
-                        {kc.type} • Expires: {formatDate(kc.expires_at)}
+                        {getKeycardTypeLabel(kc)} • Expires: {kc.is_vip ? "Lifetime" : formatDate(kc.expires_at)}
                       </p>
                     </div>
                     <span

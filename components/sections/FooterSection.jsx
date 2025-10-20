@@ -64,15 +64,18 @@ export default function FooterSection() {
               </p>
 
               {/* Socials */}
-              <div className="flex space-x-3 pt-4">
-                {[Facebook, Instagram, Twitter].map((Icon, i) => (
+              <div className="flex space-x-3 pt-4 items-center">
+                {[Facebook, Instagram,].map((Icon, i) => (
                   <div
                     key={i}
                     className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center hover:bg-secondary/40 transition-all duration-300 cursor-pointer group"
                   >
                     <Icon className="w-4 h-4 text-secondary group-hover:scale-110 transition-transform duration-300" />
+                  
                   </div>
+
                 ))}
+                <h3 className="text-white">@alphafitnessmontalban</h3>
               </div>
             </motion.div>
 
@@ -148,7 +151,7 @@ export default function FooterSection() {
                   <li className="flex justify-between items-center py-1">
                     <span>Sunday:</span>
                     <span className="text-secondary font-semibold">
-                      7AM - 10PM
+                      8AM - 5PM
                     </span>
                   </li>
                 </ul>

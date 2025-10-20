@@ -1,4 +1,3 @@
-// app/api/service/checkout/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabase } from "@/lib/supabaseClient";
@@ -19,18 +18,28 @@ export async function POST(req) {
       );
     }
 
-    // Generate unique reference ID
-    const referenceId = `APF-${Math.random()
-      .toString(36)
-      .slice(2, 10)
-      .toUpperCase()}`;
-
     const price = Number(plan.Price.replace(/[^\d]/g, ""));
     const plan_title = "Membership";
+    const referenceId = `APF-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;  // Improved random ID
 
     if (paymentMethod === "otc") {
-      // ------------------ OTC Logic ------------------
-      const startDate = new Date();
+      // _______Check for active membership_______
+      const now = new Date().toISOString();
+      const { data: activeMemberships, error: activeError } = await supabase
+        .from("memberships")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .gt("end_date", now);  // Ensure end_date is in the future
+
+      if (activeError) throw new Error(activeError.message);
+      if (activeMemberships && activeMemberships.length > 0) {
+        return NextResponse.json(
+          { error: "You already have an active membership. Please wait until it expires." },
+          { status: 400 }
+        );
+      }
+
       const monthsToAdd = plan.title.includes("12")
         ? 12
         : plan.title.includes("6")
@@ -38,6 +47,7 @@ export async function POST(req) {
         : plan.title.includes("3")
         ? 3
         : 1;
+      const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + monthsToAdd);
       const daysLeft = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -80,7 +90,7 @@ export async function POST(req) {
       });
     }
 
-    // ------------------ Online Logic (Stripe) ------------------
+    // Online Logic (Stripe) remains unchanged
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [

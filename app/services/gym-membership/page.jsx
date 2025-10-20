@@ -1,4 +1,3 @@
-// app/services/gym-membership/page.jsx
 "use client";
 
 import {
@@ -21,13 +20,12 @@ import { useAuth } from "@/context/authContext";
 
 export default function GymMembershipPage() {
   const { user } = useAuth();
-
   // ✅ Online checkout (Stripe)
   const handleCheckout = async (plan) => {
-    if (!user) return toast.error("Sign in first!");
-
+    if (!user)   toast.error("Sign in first!");
+    
     try {
-      const res = await fetch("/api/service/checkout", {
+      const res = await fetch("/api/services/membership/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, plan, paymentMethod: "online" }),
@@ -37,12 +35,17 @@ export default function GymMembershipPage() {
         throw new Error("Invalid server response");
       });
 
+      // ✅ Specific handling for active membership error
+      if (data?.error?.includes("already have an active membership")) {
+        return toast.error("You already have an active membership. Please wait until it expires.");
+      }
+
       if (!res.ok) throw new Error(data?.error || "Checkout failed");
 
       window.location.href = data.url;
     } catch (err) {
       console.error("Checkout Error:", err);
-      toast.error(err.message);
+      toast.error(err.message || "An unexpected error occurred");
     }
   };
 
@@ -51,7 +54,7 @@ export default function GymMembershipPage() {
     if (!user) return toast.error("Sign in first!");
 
     try {
-      const res = await fetch("/api/service/checkout", {
+      const res = await fetch("/api/services/membership/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, plan, paymentMethod: "otc" }),
@@ -61,12 +64,17 @@ export default function GymMembershipPage() {
         throw new Error("Invalid server response");
       });
 
+      // ✅ Specific handling for active membership error
+      if (data?.error?.includes("already have an active membership")) {
+        return toast.error("You already have an active membership. Please wait until it expires.");
+      }
+
       if (!res.ok) throw new Error(data?.error || "OTC Checkout failed");
 
       toast.success("✅ OTC membership request submitted! Pending approval.");
     } catch (err) {
       console.error("OTC Checkout Error:", err);
-      toast.error(err.message);
+      toast.error(err.message || "An unexpected error occurred");
     }
   };
 
@@ -111,14 +119,18 @@ export default function GymMembershipPage() {
                   <div className="mx-auto mb-4 p-3 rounded-lg w-fit">
                     <Dumbbell className="h-8 w-8 text-secondary" />
                   </div>
-                  <CardTitle className="text-2xl font-russo">{Membership.title}</CardTitle>
+                  <CardTitle className="text-2xl font-russo">
+                    {Membership.title}
+                  </CardTitle>
                   <CardDescription className="hidden">
                     Get your Alpha Fitness keycard without any services loaded
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="text-center space-y-6">
-                  <div className="text-4xl font-russo text-secondary">{Membership.Price}</div>
+                  <div className="text-4xl font-russo text-secondary">
+                    {Membership.Price}
+                  </div>
 
                   <div className="space-y-3 text-left">
                     {Membership.features?.map((feature, i) => (
@@ -138,11 +150,11 @@ export default function GymMembershipPage() {
                       Pay Online
                     </Button>
                     <Button
-                      variant="outline"
-                      className="w-full"
+                      variant="secondary"
+                      className="w-full text-white"
                       onClick={() => handleOTCCheckout(Membership)}
                     >
-                      Pay OTC
+                      Pay On the Counter
                     </Button>
                   </div>
                 </CardContent>
