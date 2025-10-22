@@ -1,12 +1,19 @@
-//app/services/personal-training/FitnessTrainingCoach.jsx
 "use client";
 import React from "react";
 import { fitnessCoach } from "@/constant/services";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import Image from "next/image";
 import coach from "@/public/icons/coach.png";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/authContext";
+import { toast } from "sonner"; // ✅ make sure you import toast if using it
 
 // Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -14,8 +21,51 @@ import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-
 export default function FitnessTrainingCoach() {
+  const { user } = useAuth();
+
+  const handleCheckout = async (trainingType, title, price, paymentMethod) => {
+    if (!user) {
+      toast.error("Please log in first.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/services/personal-training/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          trainingType,
+          title,
+          price,
+          paymentMethod,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server error: ${res.status} - ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.status === "pending") {
+        toast.success(
+          `Pay on Counter created!\nReference ID: ${data.reference_id}`
+        );
+      } else if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.error("Something went wrong!");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error(`Checkout failed: ${error.message}`);
+    }
+  };
+
   return (
     <div className="screen flex flex-col justify-center w-full items-center gap-6 sm:gap-8">
       <span className="font-russo text-xl sm:text-2xl text-center">
@@ -37,7 +87,6 @@ export default function FitnessTrainingCoach() {
         {fitnessCoach.map((fit, i) => (
           <SwiperSlide key={i} className="flex justify-center lg:gap-8">
             <Card className="gradientBlue-border p-5 flex flex-col w-full">
-              {/* Header */}
               <CardHeader className="place-items-center">
                 <div className="mx-auto mb-4 p-3 rounded-lg w-fit">
                   <Image src={coach} alt="coach" width={50} height={50} />
@@ -47,7 +96,6 @@ export default function FitnessTrainingCoach() {
                 </CardTitle>
               </CardHeader>
 
-              {/* Content */}
               <CardContent className="text-center space-y-6 flex-1">
                 <span className="text-2xl sm:text-4xl font-russo text-Blue">
                   {fit.price}
@@ -62,14 +110,46 @@ export default function FitnessTrainingCoach() {
                     </div>
                   ))}
                 </div>
-
-                <Button
-                  variant="secondaryBlue"
-                  className="text-white bg-Blue w-full mt-4"
-                >
-                  Book Fitness Coach
-                </Button>
               </CardContent>
+
+              <CardFooter className="pt-4 flex flex-col gap-4 ">
+                <div className="flex-1 w-full">
+                  <Button
+                    variant="secondaryBlue"
+                    className="text-white w-full text-sm sm:text-base"
+                    onClick={() =>
+                      handleCheckout(
+                        "packageDeal",
+                        fit.session,
+                        fit.price,
+                        "online"
+                      )
+                    }
+                    disabled={!user} // ✅ disable if not logged in
+                  >
+                    {!user ? "Please Login First" : "Pay Online"}{" "}
+                    {/* ✅ change text */}
+                  </Button>
+                </div>
+
+                <div className="flex-1 w-full">
+                  <Button
+                    variant="outlineSecondaryBlue"
+                    className="text-Blue w-full text-sm sm:text-base"
+                    onClick={() =>
+                      handleCheckout(
+                        "packageDeal",
+                        fit.session, // ✅ fixed
+                        fit.price, // ✅ fixed
+                        "counter"
+                      )
+                    }
+                    disabled={!user}
+                  >
+                    {!user ? "Please Login First" : "Pay On the Counter"}{" "}
+                  </Button>
+                </div>
+              </CardFooter>
             </Card>
             <div className="pt-10"></div>
           </SwiperSlide>

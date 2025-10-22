@@ -365,26 +365,26 @@ async function handlePersonalTrainingCheckout(session) {
   const priceRaw = metadata.price;
   const referenceId = metadata.referenceId || metadata.reference_id;
 
-  // Check for missing metadata
+  // Validate essential metadata
   if (!userId || !trainingType || !priceRaw || !title || !referenceId) {
     throw new Error("Missing personal training metadata");
   }
 
-  // Parse and validate price
+  // Parse price
   const price = parseFloat(priceRaw);
   if (isNaN(price) || price <= 0) {
-    throw new Error("Invalid price in metadata (must be a positive number)");
+    throw new Error("Invalid price in metadata");
   }
 
-  // Insert into database
+  // Insert into Supabase
   const { error } = await supabase.from("personal_training").insert([
     {
       user_id: userId,
       training_type: trainingType,
       title,
-      price: price,  // Validated number
+      price,
       payment_method: "online",
-      status: "paid",
+      status: "paid", // ✅ for Stripe payments only
       reference_id: referenceId,
     },
   ]);
@@ -394,5 +394,5 @@ async function handlePersonalTrainingCheckout(session) {
     throw new Error(`Database error: ${error.message}`);
   }
 
-  console.log(`✅ Personal training "${title}" recorded for user ${userId} with reference_id ${referenceId}`);
+  console.log(`✅ Personal training "${title}" recorded for user ${userId} (reference_id: ${referenceId})`);
 }

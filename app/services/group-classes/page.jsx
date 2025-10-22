@@ -128,8 +128,9 @@ export default function GroupClassesPage() {
                   onClick={handleCheckout}
                   variant="secondary"
                   className="text-white w-full text-sm sm:text-base"
+                  disabled={!user}
                 >
-                  Join Group Classes
+                  {!user? "Please Login First" : "Join Group Classes"}
                 </Button>
               </div>
             </CardFooter>

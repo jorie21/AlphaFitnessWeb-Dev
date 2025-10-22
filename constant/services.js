@@ -122,7 +122,7 @@ export const perSession = [
     ]
   },
 ];
-
+//app/constant/services.js
 export const fitnessCoach = [
     {
         session: '1 Session',

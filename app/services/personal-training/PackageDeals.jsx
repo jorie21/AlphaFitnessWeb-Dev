@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 
-
 // Swiper imports
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
@@ -30,7 +29,7 @@ export default function PackageDeals() {
       toast.error("Please log in first.");
       return;
     }
-     try {
+    try {
       const res = await fetch("/api/services/personal-training/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,7 +41,7 @@ export default function PackageDeals() {
           paymentMethod,
         }),
       });
-     if (!res.ok) {
+      if (!res.ok) {
         const errorText = await res.text(); // Fallback to text if not JSON
         throw new Error(`Server error: ${res.status} - ${errorText}`);
       }
@@ -50,7 +49,9 @@ export default function PackageDeals() {
       if (data.url) {
         window.location.href = data.url; // Stripe redirect
       } else if (data.status === "pending") {
-        toast.success(`Pay on Counter created!\nReference ID: ${data.reference_id}`);
+        toast.success(
+          `Pay on Counter created!\nReference ID: ${data.reference_id}`
+        );
       } else if (data.error) {
         toast.error(data.error);
       } else {
@@ -142,8 +143,9 @@ export default function PackageDeals() {
                         "online"
                       )
                     }
+                    disabled={!user}
                   >
-                    Pay Online
+                    {!user ? "Please Login first" : "Pay Online"}
                   </Button>
                 </div>
 
@@ -159,8 +161,9 @@ export default function PackageDeals() {
                         "counter"
                       )
                     }
+                    disabled={!user}
                   >
-                    Pay on the Counter
+                    {!user ? "Please Login first" : "Pay On the Counter"}
                   </Button>
                 </div>
               </CardFooter>

@@ -20,31 +20,43 @@ import { useAuth } from "@/context/authContext";
 import { toast } from "sonner";
 
 export default function PerSessionRates() {
+  const { user } = useAuth();
   const handleCheckout = async (trainingType, title, price, paymentMethod) => {
-    const { user } = useAuth();
     if (!user) {
       toast.error("Please log in first.");
       return;
     }
-    const res = await fetch("/api/services/personal-training/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        trainingType,
-        title,
-        price,
-        paymentMethod,
-      }),
-    });
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url; // Stripe redirect
-    } else if (data.status === "pending") {
-      alert(`Pay on Counter created!\nReference ID: ${data.reference_id}`);
-    } else {
-      alert("Something went wrong!");
+    try {
+      const res = await fetch("/api/services/personal-training/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          trainingType,
+          title,
+          price,
+          paymentMethod,
+        }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text(); // Fallback to text if not JSON
+        throw new Error(`Server error: ${res.status} - ${errorText}`);
+      }
+      const data = await res.json(); // Now safe to parse
+      if (data.url) {
+        window.location.href = data.url; // Stripe redirect
+      } else if (data.status === "pending") {
+        toast.success(
+          `Pay on Counter created!\nReference ID: ${data.reference_id}`
+        );
+      } else if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.error("Something went wrong!");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error(`Checkout failed: ${error.message}`);
     }
   };
   return (
@@ -85,16 +97,41 @@ export default function PerSessionRates() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-4">
-                <div className="flex justify-between items-center w-full">
-                  <div className="flex-1">
-                    <Button
-                      variant={"outlineSecondary"}
-                      className={"text-secondary w-full"}
-                    >
-                      Book Package
-                    </Button>
-                  </div>
+              <CardFooter className="pt-4 flex flex-col gap-4 ">
+                <div className="flex-1 w-full">
+                  <Button
+                    variant="secondary"
+                    className="text-white w-full text-sm sm:text-base"
+                    onClick={() =>
+                      handleCheckout(
+                        "packageDeal",
+                        training.title,
+                        training.price,
+                        "online"
+                      )
+                    }
+                    disabled={!user}
+                  >
+                    {!user ? "Please Login first" : "Pay Online"}
+                  </Button>
+                </div>
+
+                <div className="flex-1 w-full">
+                  <Button
+                    variant="outlineSecondary"
+                    className="text-secondary w-full text-sm sm:text-base"
+                    onClick={() =>
+                      handleCheckout(
+                        "packageDeal",
+                        training.title,
+                        training.price,
+                        "counter"
+                      )
+                    }
+                    disabled={!user}
+                  >
+                    {!user ? "Please Login first" : "Pay On the Counter"}
+                  </Button>
                 </div>
               </CardFooter>
             </Card>

@@ -146,15 +146,17 @@ export default function GymMembershipPage() {
                       variant="secondary"
                       className="text-white w-full"
                       onClick={() => handleCheckout(Membership)}
+                      disabled={!user}
                     >
-                      Pay Online
+                   {!user? "Please Login First" : "Pay Online"}
                     </Button>
                     <Button
-                      variant="secondary"
-                      className="w-full text-white"
+                      variant="outlineSecondary"
+                      className="w-full text-secondary"
                       onClick={() => handleOTCCheckout(Membership)}
+                      disabled={!user}
                     >
-                      Pay On the Counter
+                       {!user? "Please Login First" : "Pay On the Counter"}
                     </Button>
                   </div>
                 </CardContent>

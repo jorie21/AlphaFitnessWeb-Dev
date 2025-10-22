@@ -3,7 +3,6 @@ import Stripe from "stripe";
 import crypto from "crypto";
 import { supabase } from "@/lib/supabaseClient";
 
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
@@ -14,12 +13,21 @@ export async function POST(req) {
     const body = await req.json();
     console.log("Request body:", body); // Log incoming data
 
-    const { userId, trainingType, title, price, paymentMethod = "online" } = body;
+    const {
+      userId,
+      trainingType,
+      title,
+      price,
+      paymentMethod = "online",
+    } = body;
 
     // Validate required fields
     if (!userId || !trainingType || !title) {
       console.log("❌ Missing required fields");
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     // Parse and validate price
@@ -27,39 +35,37 @@ export async function POST(req) {
     const parsedPrice = parseFloat(cleanedPrice);
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
       console.log("❌ Invalid price:", price, "->", parsedPrice);
-      return NextResponse.json({ error: "Invalid or missing price (must be a positive number)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid or missing price (must be a positive number)" },
+        { status: 400 }
+      );
     }
 
-    const referenceId = crypto.randomUUID();
-    console.log("Generated referenceId:", referenceId);
+    const referenceId = `APF-${crypto
+      .randomBytes(4)
+      .toString("hex")
+      .toUpperCase()}`;
 
     // Pay on Counter logic
     if (paymentMethod === "counter") {
-      console.log("Processing counter payment");
       const { error } = await supabase.from("personal_training").insert([
         {
           user_id: userId,
           training_type: trainingType,
           title,
-          price: parsedPrice,
+          price: parseFloat(price),
           payment_method: "counter",
-          status: "pending",
+          status: "pending", // 👈 pending for counter payments
           reference_id: referenceId,
         },
       ]);
 
       if (error) {
-        console.error("❌ Counter insert error:", error);
-        return NextResponse.json({ error: `Database error: ${error.message}` }, { status: 500 });
+        console.error("❌ Database insert error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log("✅ Counter payment recorded");
-      return NextResponse.json({
-        success: true,
-        message: "Pay on counter recorded",
-        reference_id: referenceId,
-        status: "pending",
-      });
+      return NextResponse.json({ message: "✅ Added as pending payment" });
     }
 
     // Stripe Checkout
@@ -93,6 +99,9 @@ export async function POST(req) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("❌ Checkout error:", error); // Log full error object
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
