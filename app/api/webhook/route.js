@@ -357,22 +357,25 @@ async function handleGroupClassCheckout(session) {
 /* ------------------------
    Personal Training Checkout
    ------------------------ */
+/* ------------------------
+   Personal Training Checkout (Stripe webhook)
+   ------------------------ */
 async function handlePersonalTrainingCheckout(session) {
-  const metadata = session.metadata || {};
+  const metadata = session?.metadata || {};
   const userId = metadata.userId || metadata.user_id;
-  const trainingType = metadata.trainingType || metadata.training_type;
+  const trainingType = metadata.trainingType || metadata.training_type; // must be a valid enum label
   const title = metadata.title;
-  const priceRaw = metadata.price;
+  const priceRaw = metadata.price; // may be string or number
   const referenceId = metadata.referenceId || metadata.reference_id;
 
   // Validate essential metadata
-  if (!userId || !trainingType || !priceRaw || !title || !referenceId) {
+  if (!userId || !trainingType || !title || !priceRaw || !referenceId) {
     throw new Error("Missing personal training metadata");
   }
 
-  // Parse price
-  const price = parseFloat(priceRaw);
-  if (isNaN(price) || price <= 0) {
+  // Parse and validate price
+  const price = Number.parseFloat(String(priceRaw));
+  if (!Number.isFinite(price) || price <= 0) {
     throw new Error("Invalid price in metadata");
   }
 
@@ -380,11 +383,11 @@ async function handlePersonalTrainingCheckout(session) {
   const { error } = await supabase.from("personal_training").insert([
     {
       user_id: userId,
-      training_type: trainingType,
+      training_type: trainingType, // e.g., 'per_session' | 'package_12' | 'coach'
       title,
       price,
       payment_method: "online",
-      status: "paid", // ✅ for Stripe payments only
+      status: "active", // ✅ counts in your stats (only ACTIVE is counted)
       reference_id: referenceId,
     },
   ]);
@@ -394,5 +397,7 @@ async function handlePersonalTrainingCheckout(session) {
     throw new Error(`Database error: ${error.message}`);
   }
 
-  console.log(`✅ Personal training "${title}" recorded for user ${userId} (reference_id: ${referenceId})`);
+  console.log(
+    `✅ Personal training "${title}" recorded for user ${userId} (reference_id: ${referenceId})`
+  );
 }

@@ -199,3 +199,29 @@
   @apply mt-3; /* Adds margin between the cards and dots */
 }
 
+/* --- Print-only helpers --- */
+@media print {
+  /* preserve colors & gradients */
+  body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* page sizing (tweak if you want) */
+  @page { size: A6 portrait; margin: 6mm; }
+
+  /* hide EVERYTHING by default */
+  body * { visibility: hidden !important; }
+
+  /* show ONLY the keycard */
+  #print-keycard,
+  #print-keycard * { visibility: visible !important; }
+
+  /* center the card on the page; keep its own background/gradient */
+  #print-keycard {
+    position: fixed;      /* detach from page layout */
+    inset: 0;             /* center */
+    margin: auto;
+    box-shadow: none !important; /* optional for cleaner print */
+    border: 1px solid rgba(255,255,255,0.12); /* faint border on paper */
+  }
+}
+
+

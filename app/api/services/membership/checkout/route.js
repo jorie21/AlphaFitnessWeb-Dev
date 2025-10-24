@@ -1,3 +1,4 @@
+//api/services/membership/checkout/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabase } from "@/lib/supabaseClient";

@@ -3,34 +3,28 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Copy, Check, AlertCircle, Calendar, CreditCard, Star } from "lucide-react"; // Added Star for VIP badge
+import { Copy, Check, AlertCircle, Calendar, CreditCard, Star } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import AlphaFitness from "./Alphafitness";
 
 export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
   const [copiedId, setCopiedId] = useState(null);
-  
-  // Get the first active keycard, or just the first one
   const activeKeycard = keycards?.find(kc => kc.status === "active") || keycards?.[0];
 
   const handleCopyId = (uniqueId) => {
     navigator.clipboard.writeText(uniqueId);
     setCopiedId(uniqueId);
     toast.success("Keycard ID copied to clipboard!");
-    
-    setTimeout(() => {
-      setCopiedId(null);
-    }, 2000);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -45,12 +39,8 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
     }
   };
 
-  // Helper to get keycard type label
-  const getKeycardTypeLabel = (keycard) => {
-    return keycard.is_vip ? "VIP Keycard" : "Basic Keycard";
-  };
+  const getKeycardTypeLabel = (keycard) => (keycard.is_vip ? "VIP Keycard" : "Basic Keycard");
 
-  // If no keycard exists
   if (!activeKeycard) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -68,10 +58,12 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
             <Button onClick={onClose} variant="outline">
               Close
             </Button>
-            <Button onClick={() => {
-              onClose();
-              window.location.href = "/services/keycards";
-            }}>
+            <Button
+              onClick={() => {
+                onClose();
+                window.location.href = "/services/keycards";
+              }}
+            >
               Get Keycard
             </Button>
           </div>
@@ -82,8 +74,9 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+      {/* keep print classes minimal; we’ll control print via global CSS */}
+      <DialogContent className="w-full max-h-[90vh] overflow-x-hidden">
+        <DialogHeader className="print-hidden">
           <DialogTitle className="text-xl sm:text-2xl font-russo flex items-center justify-between pr-8">
             <span>Your Digital Keycard</span>
           </DialogTitle>
@@ -93,11 +86,18 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
         </DialogHeader>
 
         <div className="space-y-4 sm:space-y-6 mt-4">
-          {/* Keycard Display */}
-          <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-6 shadow-2xl border border-gray-700">
-            {/* Status and VIP Badges */}
-            <div className="absolute top-4 right-4 flex gap-2">
-              <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(activeKeycard.status)}`}>
+          {/* >>> This is the ONLY thing that will print <<< */}
+          <div
+            id="print-keycard"
+            className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-6 shadow-2xl border border-gray-700"
+          >
+            {/* Status and VIP Badges (hidden in print) */}
+            <div className="absolute top-4 right-4 flex gap-2 print-hidden">
+              <div
+                className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(
+                  activeKeycard.status
+                )}`}
+              >
                 {activeKeycard.status}
               </div>
               {activeKeycard.is_vip && (
@@ -108,15 +108,15 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
               )}
             </div>
 
-            {/* Card Header */}
+            {/* Header */}
             <div className="text-white mb-6">
-              <AlphaFitness/>
+              <AlphaFitness />
               <p className="text-sm text-gray-400">Member Keycard</p>
             </div>
 
-            {/* QR Code Section */}
+            {/* QR + Details */}
             <div className="flex flex-col md:flex-row gap-6 items-center">
-              {/* QR Code */}
+              {/* QR box */}
               <div className="bg-white p-3 sm:p-4 rounded-lg sm:rounded-xl shadow-lg">
                 <div className="relative w-32 h-32 sm:w-48 sm:h-48">
                   <Image
@@ -128,7 +128,7 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
                 </div>
               </div>
 
-              {/* Keycard Details */}
+              {/* Details */}
               <div className="flex-1 w-full space-y-3 sm:space-y-4 text-white">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-gray-400 text-[10px] sm:text-xs">
@@ -143,7 +143,7 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleCopyId(activeKeycard.unique_id)}
-                      className="text-white hover:bg-gray-700 h-8 w-8 p-0"
+                      className="text-white hover:bg-gray-700 h-8 w-8 p-0 print-hidden"
                     >
                       {copiedId === activeKeycard.unique_id ? (
                         <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
@@ -176,8 +176,8 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
             </div>
           </div>
 
-          {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
+          {/* Instructions (hidden on print) */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3 print-hidden">
             <h4 className="font-bold text-blue-900 flex items-center gap-2 text-sm sm:text-base">
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
               How to Use Your Keycard
@@ -185,62 +185,34 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-blue-800">
               <li className="flex items-start gap-2">
                 <span className="font-bold">1.</span>
-                <span>Show this QR code to the staff at the gym entrance</span>
+                <span>Tap this Digital Keycard in the scanner to automatically log your entry.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">2.</span>
-                <span>They will scan it to verify your membership</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold">3.</span>
-                <span>You can also provide your Keycard ID for manual entry</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold">4.</span>
-                <span>Keep your keycard valid by renewing before expiration (VIP keycards never expire)</span>
+                <span>Keep your keycard valid by renewing before expiration (VIP keycards never expire).</span>
               </li>
             </ul>
-          </div>
 
-          {/* All Keycards */}
-          {keycards && keycards.length > 1 && (
-            <div className="space-y-2 sm:space-y-3">
-              <h4 className="font-bold text-gray-900 text-sm sm:text-base">All Your Keycards</h4>
-              <div className="space-y-2">
-                {keycards.map((kc) => (
-                  <div
-                    key={kc.id}
-                    className="p-2 sm:p-3 border rounded-lg bg-gray-50 flex justify-between items-center gap-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-xs sm:text-sm font-bold truncate">{kc.unique_id}</p>
-                      <p className="text-[10px] sm:text-xs text-gray-600">
-                        {getKeycardTypeLabel(kc)} • Expires: {kc.is_vip ? "Lifetime" : formatDate(kc.expires_at)}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap ${getStatusColor(
-                        kc.status
-                      )}`}
-                    >
-                      {kc.status}
-                    </span>
-                  </div>
-                ))}
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5" />
+                <div>
+                  <p className="font-bold">Caution — Keycard Sharing Prohibited</p>
+                  <p className="text-xs sm:text-sm mt-1">
+                    If another person borrows or uses this keycard at the gym, any services they use may be voided.
+                    Sharing or lending your keycard is strictly prohibited and may result in penalties or termination of service.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+          {/* Actions (hidden on print) */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 print-hidden">
             <Button onClick={onClose} variant="outline" className="flex-1 text-sm">
               Close
             </Button>
-            <Button
-              onClick={() => window.print()}
-              variant="secondary"
-              className="flex-1 text-sm"
-            >
+            <Button onClick={() => window.print()} variant="secondary" className="flex-1 text-sm">
               Print Keycard
             </Button>
           </div>

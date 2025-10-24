@@ -1,26 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { SquarePen, KeyRound } from "lucide-react";
-import { totalValue } from "@/constant/profile";
+import { SquarePen, KeyRound, ShoppingCart, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
-import DigitalKeycardModal from "@/components/DigitalKeycardModal"; // Import the modal
+import DigitalKeycardModal from "@/components/DigitalKeycardModal";
+import useServiceStats from "@/hooks/useServiceStats";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function ProfileHeader() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [keycards, setKeycards] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const { user } = useAuth();
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const imageURL = URL.createObjectURL(file);
-      setSelectedImage(imageURL);
+  // 🔢 service stats via hook
+  const { stats, loading: loadingStats } = useServiceStats(user?.id);
+
+  // Load avatar from DB
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAvatar = async () => {
+      if (!user) {
+        setSelectedImage(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("users")
+        .select("profile_picture")
+        .eq("id", user.id)
+        .single();
+
+      if (!cancelled && !error && data?.profile_picture) {
+        setSelectedImage(data.profile_picture);
+      }
+    };
+
+    loadAvatar();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return toast.error("Please login first.");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("userId", user.id);
+
+    try {
+      const res = await fetch("/api/users/upload-profile", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      setSelectedImage(data.imageUrl);
+      toast.success("Profile image updated!");
+
+      await supabase.auth.updateUser({
+        data: { avatar_url: data.imageUrl },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to update profile image");
     }
   };
 
@@ -29,33 +80,23 @@ export default function ProfileHeader() {
       toast.error("Please login to view your keycards");
       return;
     }
-
     setLoading(true);
-
     try {
       const res = await fetch("/api/keycards/get", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user.id }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, type: "check" }), // ✅ neutral check
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch keycards");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch keycards");
-      }
-
-      console.log("THIS IS DATA FROM KEYCARD", data)
-
-      if (data.keycards && data.keycards.length > 0) {
+      if (data.keycards?.length) {
         setKeycards(data.keycards);
         setIsModalOpen(true);
       } else {
         toast.error("No keycards found. Purchase one to get started!");
       }
-
     } catch (err) {
       console.error("Fetch keycards error:", err);
       toast.error(err.message || "Failed to fetch keycards");
@@ -116,27 +157,32 @@ export default function ProfileHeader() {
 
               {/* stats cards */}
               <div className="flex flex-wrap md:flex-nowrap justify-center md:justify-start gap-2 w-full">
-                {totalValue.map((item, index) => (
-                  <div
-                    key={index}
-                    className="border-2 border-white/30 rounded-[10px] bg-black/30 backdrop-blur-md flex-1 min-w-[100px] md:min-w-[120px] md:flex-none"
-                  >
-                    <div className="flex flex-col gap-2 justify-center items-center p-3 md:p-4">
-                      <span
-                        className={`font-russo text-xl md:text-2xl ${item.color}`}
-                      >
-                        {item.total}
-                      </span>
-                      <h1 className="flex items-center gap-2 font-arone font-medium text-sm md:text-[16px] text-white/70">
-                        {item.title}
-                        <item.icon className="w-4 h-4" />
-                      </h1>
-                    </div>
+                {/* Services Purchase */}
+                <div className="border-2 border-white/30 rounded-[10px] bg-black/30 backdrop-blur-md flex-1 min-w-[120px] md:flex-none">
+                  <div className="flex flex-col gap-2 justify-center items-center p-3 md:p-4">
+                    <span className="font-russo text-xl md:text-2xl text-red-400">
+                      {loadingStats ? "…" : stats.total_purchases}
+                    </span>
+                    <h1 className="flex items-center gap-2 font-arone font-medium text-sm md:text-[16px] text-white/70">
+                      Services Purchase <ShoppingCart className="w-4 h-4" />
+                    </h1>
                   </div>
-                ))}
+                </div>
+
+                {/* Months Member */}
+                <div className="border-2 border-white/30 rounded-[10px] bg-black/30 backdrop-blur-md flex-1 min-w-[120px] md:flex-none">
+                  <div className="flex flex-col gap-2 justify-center items-center p-3 md:p-4">
+                    <span className="font-russo text-xl md:text-2xl text-blue-400">
+                      {loadingStats ? "…" : stats.months_member}
+                    </span>
+                    <h1 className="flex items-center gap-2 font-arone font-medium text-sm md:text-[16px] text-white/70">
+                      Months Member <CalendarDays className="w-4 h-4" />
+                    </h1>
+                  </div>
+                </div>
               </div>
 
-              {/* Your Digital Keycard Button */}
+              {/* Digital Keycard Button */}
               <Button
                 onClick={handleFetchKeycards}
                 disabled={loading || !user}
@@ -161,7 +207,6 @@ export default function ProfileHeader() {
         </div>
       </section>
 
-      {/* Digital Keycard Modal */}
       <DigitalKeycardModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

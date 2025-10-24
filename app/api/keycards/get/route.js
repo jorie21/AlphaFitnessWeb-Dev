@@ -1,3 +1,4 @@
+//api/keycards/get/route.js
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import { keycardPurchaseSchema } from "@/app/actions/validation/keycardPurchaseSchema";
@@ -11,30 +12,34 @@ export async function POST(req) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
 
-    // ✅ Validate using async-safe Zod parsing (with improved error handling)
     const validationResult = await keycardPurchaseSchema.safeParseAsync({ userId, type });
     if (!validationResult.success) {
-      // Safely extract error message (handles cases where error.errors might be undefined)
       const errorMessage = validationResult.error?.issues?.[0]?.message || "Invalid input data";
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    // ✅ Fetch ALL necessary fields from keycards (including the new is_vip column)
+    // ✅ Always fetch latest (we also reuse this for 'check')
     const { data: keycards, error: fetchError } = await supabase
       .from("keycards")
-      .select("*")  // Includes is_vip and all other fields
+      .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(1);  // Limiting to latest for validation, but returns array
+      .limit(1);
 
     if (fetchError) {
       console.error("Supabase error:", fetchError);
       return NextResponse.json({ error: "Failed to fetch keycards" }, { status: 500 });
     }
 
+    // ✅ NEW: existence-only path (no business rules)
+    if (type === "check") {
+      const hasKeycard = Array.isArray(keycards) && keycards.length > 0;
+      return NextResponse.json({ hasKeycard, keycards: keycards ?? [] }, { status: 200 });
+    }
+
     const latest = keycards?.[0];
 
-    // ✅ Business logic validation (updated for VIP)
+    // 🔒 Existing business rules stay as-is
     if (type === "basic") {
       if (latest?.status === "active") {
         return NextResponse.json({ error: "You already have an active keycard." }, { status: 400 });
@@ -53,7 +58,6 @@ export async function POST(req) {
         return NextResponse.json({ error: "You can only renew if your keycard is expired." }, { status: 400 });
       }
     } else if (type === "vip") {
-      // Fetch all keycards to check for any non-VIP (since limit(1) might not catch all)
       const { data: allKeycards, error: allFetchError } = await supabase
         .from("keycards")
         .select("is_vip")
@@ -70,14 +74,9 @@ export async function POST(req) {
       }
     }
 
-    return NextResponse.json({ keycards, isValid: true });  // keycards includes all fields, including is_vip
+    return NextResponse.json({ keycards, isValid: true });
   } catch (error) {
     console.error("Error in API route:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
-
-// ✅ Handle GET requests
-export async function GET() {
-  return NextResponse.json({ error: "Use POST with userId and type" }, { status: 405 });
 }

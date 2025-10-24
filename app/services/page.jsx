@@ -1,6 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Check, RefreshCcw, Star } from "lucide-react"; // Added Star for VIP icon
 import { keycardFeature, keycardRenew } from "@/constant/features";
@@ -23,7 +30,7 @@ export default function KeycardsPage() {
       const res = await fetch("/api/keycards/get", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, type: "check" }), // ✅ add type
       });
       const { keycards } = await res.json();
 
@@ -31,7 +38,7 @@ export default function KeycardsPage() {
         const latest = keycards[0];
         setKeycardStatus(latest.status);
         // Check if user has any non-VIP keycard
-        const hasNonVip = keycards.some(k => !k.is_vip);  // Use new column
+        const hasNonVip = keycards.some((k) => !k.is_vip); // Use new column
         setHasNonVipKeycard(hasNonVip);
       } else {
         setHasNonVipKeycard(false);
@@ -136,14 +143,19 @@ export default function KeycardsPage() {
     }
   };
 
-  const isRenewDisabled = authLoading || loading || !user || keycardStatus !== "expired";
+  const isRenewDisabled =
+    authLoading || loading || !user || keycardStatus !== "expired";
   const isVipDisabled = authLoading || loading || !user || !hasNonVipKeycard;
 
   return (
     <section className="screen flex flex-col justify-center items-center gap-8 px-4 sm:px-8">
       <div className="text-center space-y-2 max-w-xl">
-        <h1 className="font-russo text-3xl sm:text-4xl leading-tight">Get Your Alpha Fitness KeyCard</h1>
-        <p className="text-base sm:text-lg font-arone opacity-70">Required for all services. Choose your keycard option below.</p>
+        <h1 className="font-russo text-3xl sm:text-4xl leading-tight">
+          Get Your Alpha Fitness KeyCard
+        </h1>
+        <p className="text-base sm:text-lg font-arone opacity-70">
+          Required for all services. Choose your keycard option below.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl w-full">
@@ -153,7 +165,10 @@ export default function KeycardsPage() {
               <CreditCard className="h-8 w-8 text-gray-600" />
             </div>
             <CardTitle className="text-2xl font-russo">Basic Keycard</CardTitle>
-            <CardDescription className="text-sm opacity-70 px-2">Get your Alpha Fitness keycard for access to facilities (expires after 1 year)</CardDescription>
+            <CardDescription className="text-sm opacity-70 px-2">
+              Get your Alpha Fitness keycard for access to facilities (expires
+              after 1 year)
+            </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div className="text-4xl font-bold text-gray-900">₱150</div>
@@ -166,12 +181,18 @@ export default function KeycardsPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button
-              disabled={loading || !user || authLoading}
+              disabled={true}       //{loading || !user || authLoading}
               onClick={() => handlePurchase("basic")}
               className="w-full"
             >
-              {loading ? "Processing..." : !user ? "Login to Purchase" : "Pay Online (₱150)"}
+              Pay Online
+              Under Maintenance
             </Button>
+              {/* {loading
+                ? "Processing..."
+                : !user
+                ? "Login to Purchase"
+                : "Pay Online (₱150)"} */}
             <Button
               disabled={loading || !user || authLoading}
               onClick={() => handleOTCPurchase("basic")}
@@ -189,7 +210,9 @@ export default function KeycardsPage() {
               <RefreshCcw className="h-8 w-8 text-secondary" />
             </div>
             <CardTitle className="text-2xl font-russo">Renew Keycard</CardTitle>
-            <CardDescription className="text-sm opacity-70 px-2">Renew your expired basic keycard for another year.</CardDescription>
+            <CardDescription className="text-sm opacity-70 px-2">
+              Renew your expired basic keycard for another year.
+            </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div className="text-4xl font-bold text-gray-900">₱100</div>
@@ -207,7 +230,11 @@ export default function KeycardsPage() {
               variant="secondary"
               className="w-full"
             >
-              {isRenewDisabled ? "Available When Expired" : loading ? "Processing..." : "Renew Now"}
+              {isRenewDisabled
+                ? "Available When Expired"
+                : loading
+                ? "Processing..."
+                : "Renew Now"}
             </Button>
           </CardFooter>
         </Card>
@@ -218,7 +245,10 @@ export default function KeycardsPage() {
               <Star className="h-8 w-8 text-yellow-600" />
             </div>
             <CardTitle className="text-2xl font-russo">VIP Keycard</CardTitle>
-            <CardDescription className="text-sm opacity-70 px-2">Upgrade to VIP for lifetime premium access. Requires an existing non-VIP keycard.</CardDescription>
+            <CardDescription className="text-sm opacity-70 px-2">
+              Upgrade to VIP for lifetime premium access. Requires an existing
+              non-VIP keycard.
+            </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div className="text-4xl font-bold text-gray-900">₱799</div>
@@ -229,17 +259,24 @@ export default function KeycardsPage() {
               </div>
             ))}
             <div className="flex items-center gap-3">
-              <Check className="h-5 w-5 text-green-500" /> Lifetime access (no expiration)
+              <Check className="h-5 w-5 text-green-500" /> Lifetime access (no
+              expiration)
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button
-              disabled={isVipDisabled}
+              disabled={true}  //{isVipDisabled}
               onClick={() => handlePurchase("vip")}
               className="w-full"
             >
-              {isVipDisabled ? "Requires Existing Keycard" : loading ? "Processing..." : "Pay Online (₱799)"}
+              Pay Online
+              Under Maintenance
             </Button>
+              {/* {isVipDisabled
+                ? "Requires Existing Keycard"
+                : loading
+                ? "Processing..."
+                : "Pay Online (₱799)"} */}
             <Button
               disabled={isVipDisabled}
               onClick={() => handleOTCPurchase("vip")}

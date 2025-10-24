@@ -1,3 +1,4 @@
+// api/services/personal-training/checkout/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import crypto from "crypto";
@@ -8,10 +9,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export async function POST(req) {
-  console.log("🔄 Checkout request received"); // Add this for debugging
+  console.log("🔄 Checkout request received");
   try {
     const body = await req.json();
-    console.log("Request body:", body); // Log incoming data
+    console.log("Request body:", body);
 
     const {
       userId,
@@ -21,7 +22,6 @@ export async function POST(req) {
       paymentMethod = "online",
     } = body;
 
-    // Validate required fields
     if (!userId || !trainingType || !title) {
       console.log("❌ Missing required fields");
       return NextResponse.json(
@@ -30,9 +30,12 @@ export async function POST(req) {
       );
     }
 
-    // Parse and validate price
-    const cleanedPrice = price ? price.replace(/[^0-9.]/g, "") : "";
-    const parsedPrice = parseFloat(cleanedPrice);
+    // Accept numbers or formatted strings (e.g., "₱5,000")
+    const parsedPrice =
+      typeof price === "number"
+        ? price
+        : parseFloat(String(price).replace(/[^0-9.]/g, ""));
+
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
       console.log("❌ Invalid price:", price, "->", parsedPrice);
       return NextResponse.json(
@@ -41,21 +44,18 @@ export async function POST(req) {
       );
     }
 
-    const referenceId = `APF-${crypto
-      .randomBytes(4)
-      .toString("hex")
-      .toUpperCase()}`;
+    const referenceId = `APF-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    // Pay on Counter logic
+    // Pay on Counter
     if (paymentMethod === "counter") {
       const { error } = await supabase.from("personal_training").insert([
         {
           user_id: userId,
           training_type: trainingType,
           title,
-          price: parseFloat(price),
+          price: parsedPrice, // ✅ use the validated number
           payment_method: "counter",
-          status: "pending", // 👈 pending for counter payments
+          status: "pending",
           reference_id: referenceId,
         },
       ]);
@@ -65,7 +65,11 @@ export async function POST(req) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({ message: "✅ Added as pending payment" });
+      return NextResponse.json({
+        status: "pending",
+        reference_id: referenceId,
+        message: "✅ Added as pending payment",
+      });
     }
 
     // Stripe Checkout
@@ -98,7 +102,7 @@ export async function POST(req) {
     console.log("✅ Stripe session created:", session.url);
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("❌ Checkout error:", error); // Log full error object
+    console.error("❌ Checkout error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { fitnessCoach } from "@/constant/services";
 import {
   Card,
@@ -13,23 +13,78 @@ import coach from "@/public/icons/coach.png";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/authContext";
-import { toast } from "sonner"; // ✅ make sure you import toast if using it
-
-// Swiper
+import { toast } from "sonner";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import { useRouter } from "next/navigation";
 
 export default function FitnessTrainingCoach() {
+  const router = useRouter();
   const { user } = useAuth();
 
-  const handleCheckout = async (trainingType, title, price, paymentMethod) => {
+  // ✅ match your Postgres enum labels
+  const TRAINING_TYPES = {
+    COACH: "coach",
+  };
+
+  const sanitizePrice = (val) =>
+    typeof val === "number" ? val : Number(String(val).replace(/[^0-9.]/g, ""));
+
+  // keycard gating
+  const [hasKeycard, setHasKeycard] = useState(null);
+  const [checkingKeycard, setCheckingKeycard] = useState(false);
+
+  useEffect(() => {
+    const checkKeycard = async () => {
+      if (!user) {
+        setHasKeycard(null);
+        return;
+      }
+      setCheckingKeycard(true);
+      try {
+        const res = await fetch("/api/keycards/get", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, type: "check" }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const any = Array.isArray(data?.keycards) && data.keycards.length > 0;
+        setHasKeycard(any);
+      } catch (e) {
+        console.error("Keycard check failed:", e);
+        setHasKeycard(false);
+      } finally {
+        setCheckingKeycard(false);
+      }
+    };
+    checkKeycard();
+  }, [user]);
+
+  const guardRequiresKeycard = () => {
     if (!user) {
       toast.error("Please log in first.");
-      return;
+      return false;
     }
+    if (checkingKeycard || hasKeycard === null) {
+      toast.message("Checking your keycard status…");
+      return false;
+    }
+    if (hasKeycard === false) {
+      toast.error(
+        "You need an Alpha Fitness keycard before purchasing Personal Training."
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleCheckout = async (trainingType, title, price, paymentMethod) => {
+    if (!guardRequiresKeycard()) return;
+
     try {
+      const priceNum = sanitizePrice(price);
       const res = await fetch("/api/services/personal-training/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,7 +92,7 @@ export default function FitnessTrainingCoach() {
           userId: user.id,
           trainingType,
           title,
-          price,
+          price: priceNum,
           paymentMethod,
         }),
       });
@@ -54,6 +109,12 @@ export default function FitnessTrainingCoach() {
       } else if (data.status === "pending") {
         toast.success(
           `Pay on Counter created!\nReference ID: ${data.reference_id}`
+        );
+        toast.success(
+          `Creating a Receipt for\nReference ID: ${data.reference_id}`
+        );
+        router.push(
+          `/payment/otcServicess?reference_id=${data.reference_id}&service=personal_training`
         );
       } else if (data.error) {
         toast.error(data.error);
@@ -76,7 +137,7 @@ export default function FitnessTrainingCoach() {
         modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
         autoplay={{ delay: 2000 }}
-        loop={true}
+        loop
         spaceBetween={16}
         breakpoints={{
           0: { slidesPerView: 1, centeredSlides: true },
@@ -119,16 +180,16 @@ export default function FitnessTrainingCoach() {
                     className="text-white w-full text-sm sm:text-base"
                     onClick={() =>
                       handleCheckout(
-                        "packageDeal",
+                        TRAINING_TYPES.COACH,
                         fit.session,
                         fit.price,
                         "online"
                       )
                     }
-                    disabled={!user} // ✅ disable if not logged in
+                    disabled={true}
                   >
-                    {!user ? "Please Login First" : "Pay Online"}{" "}
-                    {/* ✅ change text */}
+                    Pay Online <br />
+                    Under Maintenance
                   </Button>
                 </div>
 
@@ -138,15 +199,14 @@ export default function FitnessTrainingCoach() {
                     className="text-Blue w-full text-sm sm:text-base"
                     onClick={() =>
                       handleCheckout(
-                        "packageDeal",
-                        fit.session, // ✅ fixed
-                        fit.price, // ✅ fixed
+                        TRAINING_TYPES.COACH,
+                        fit.session,
+                        fit.price,
                         "counter"
                       )
                     }
-                    disabled={!user}
                   >
-                    {!user ? "Please Login First" : "Pay On the Counter"}{" "}
+                    Pay On the Counter
                   </Button>
                 </div>
               </CardFooter>

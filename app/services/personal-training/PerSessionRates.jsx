@@ -1,6 +1,6 @@
-//app/services/personal-training/PerSessionRates.jsx
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { perSession } from "@/constant/services";
 import {
   Card,
@@ -11,7 +11,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
@@ -20,13 +19,71 @@ import { useAuth } from "@/context/authContext";
 import { toast } from "sonner";
 
 export default function PerSessionRates() {
+  const router = useRouter();
   const { user } = useAuth();
-  const handleCheckout = async (trainingType, title, price, paymentMethod) => {
+
+  // ✅ match your Postgres enum labels
+  const TRAINING_TYPES = {
+    PER_SESSION: "per_session",
+  };
+
+  const sanitizePrice = (val) =>
+    typeof val === "number" ? val : Number(String(val).replace(/[^0-9.]/g, ""));
+
+  // keycard check
+  const [hasKeycard, setHasKeycard] = useState(null);
+  const [checkingKeycard, setCheckingKeycard] = useState(false);
+
+  useEffect(() => {
+    const checkKeycard = async () => {
+      if (!user) {
+        setHasKeycard(null);
+        return;
+      }
+      setCheckingKeycard(true);
+      try {
+        const res = await fetch("/api/keycards/get", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, type: "check" }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const any = Array.isArray(data?.keycards) && data.keycards.length > 0;
+        setHasKeycard(any);
+      } catch (e) {
+        console.error("Keycard check failed:", e);
+        setHasKeycard(false);
+      } finally {
+        setCheckingKeycard(false);
+      }
+    };
+    checkKeycard();
+  }, [user]);
+
+  const guardRequiresKeycard = () => {
     if (!user) {
       toast.error("Please log in first.");
-      return;
+      return false;
     }
+    if (checkingKeycard || hasKeycard === null) {
+      toast.message("Checking your keycard status…");
+      return false;
+    }
+    if (hasKeycard === false) {
+      toast.error(
+        "You need an Alpha Fitness keycard before purchasing Personal Training."
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleCheckout = async (trainingType, title, price, paymentMethod) => {
+    if (!guardRequiresKeycard()) return;
+
     try {
+      const priceNum = sanitizePrice(price);
+
       const res = await fetch("/api/services/personal-training/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,20 +91,30 @@ export default function PerSessionRates() {
           userId: user.id,
           trainingType,
           title,
-          price,
+          price: priceNum,
           paymentMethod,
         }),
       });
+
       if (!res.ok) {
-        const errorText = await res.text(); // Fallback to text if not JSON
+        const errorText = await res.text();
         throw new Error(`Server error: ${res.status} - ${errorText}`);
       }
-      const data = await res.json(); // Now safe to parse
+
+      const data = await res.json();
+
       if (data.url) {
-        window.location.href = data.url; // Stripe redirect
-      } else if (data.status === "pending") {
+        // Stripe online payment
+        window.location.href = data.url;
+      } else if (data.status === "pending" && data.reference_id) {
         toast.success(
           `Pay on Counter created!\nReference ID: ${data.reference_id}`
+        );
+        toast.success(
+          `Creating a Receipt for\nReference ID: ${data.reference_id}`
+        );
+        router.push(
+          `/payment/otcServicess?reference_id=${data.reference_id}&service=personal_training`
         );
       } else if (data.error) {
         toast.error(data.error);
@@ -59,6 +126,7 @@ export default function PerSessionRates() {
       toast.error(`Checkout failed: ${error.message}`);
     }
   };
+
   return (
     <div className="screen flex flex-col justify-center w-full items-center gap-8 space-y-5">
       <span className="font-russo text-2xl">Per Session Rates</span>
@@ -67,7 +135,7 @@ export default function PerSessionRates() {
         modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
         autoplay={{ delay: 2000 }}
-        loop={true}
+        loop
         spaceBetween={16}
         breakpoints={{
           0: { slidesPerView: 1, centeredSlides: true },
@@ -104,15 +172,16 @@ export default function PerSessionRates() {
                     className="text-white w-full text-sm sm:text-base"
                     onClick={() =>
                       handleCheckout(
-                        "packageDeal",
+                        TRAINING_TYPES.PER_SESSION,
                         training.title,
                         training.price,
                         "online"
                       )
                     }
-                    disabled={!user}
+                    disabled={true}
                   >
-                    {!user ? "Please Login first" : "Pay Online"}
+                    Pay Online
+                    Under Maintenance
                   </Button>
                 </div>
 
@@ -122,15 +191,14 @@ export default function PerSessionRates() {
                     className="text-secondary w-full text-sm sm:text-base"
                     onClick={() =>
                       handleCheckout(
-                        "packageDeal",
+                        TRAINING_TYPES.PER_SESSION,
                         training.title,
                         training.price,
                         "counter"
                       )
                     }
-                    disabled={!user}
                   >
-                    {!user ? "Please Login first" : "Pay On the Counter"}
+                    Pay On the Counter
                   </Button>
                 </div>
               </CardFooter>

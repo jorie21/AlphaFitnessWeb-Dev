@@ -13,6 +13,12 @@ const nextConfig = {
         pathname: '/v1/create-qr-code/**',
       },
     ],
+     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
+    ],
   },
 }
 export default nextConfig;

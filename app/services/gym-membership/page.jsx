@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -20,24 +21,87 @@ import { useAuth } from "@/context/authContext";
 
 export default function GymMembershipPage() {
   const { user } = useAuth();
-  // ✅ Online checkout (Stripe)
+
+  // track keycard availability
+  const [hasKeycard, setHasKeycard] = useState(null); // null=unknown
+  const [checkingKeycard, setCheckingKeycard] = useState(false);
+
+  // check if user has any keycard (uses your /api/keycards/get POST)
+  useEffect(() => {
+    const checkKeycard = async () => {
+      if (!user) {
+        setHasKeycard(null);
+        return;
+      }
+      setCheckingKeycard(true);
+      try {
+       const res = await fetch("/api/keycards/get", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ userId: user.id, type: "check" }), // ✅ neutral check
+});
+        const data = await res.json().catch(() => ({}));
+
+        // Prefer the explicit boolean if present; fall back to array length
+        const any =
+          typeof data?.hasKeycard === "boolean"
+            ? data.hasKeycard
+            : Array.isArray(data?.keycards) && data.keycards.length > 0;
+
+        setHasKeycard(any);
+      } catch (e) {
+        console.error("Keycard check failed:", e);
+        setHasKeycard(false);
+      } finally {
+        setCheckingKeycard(false);
+      }
+    };
+    checkKeycard();
+  }, [user]);
+
+  // hard guard used by both handlers
+  const guardRequiresKeycard = () => {
+    if (!user) {
+      toast.error("Sign in first!");
+      return false;
+    }
+    if (checkingKeycard) {
+      toast.message("Checking your keycard status…");
+      return false;
+    }
+    if (hasKeycard === false) {
+      toast.error(
+        "You need an Alpha Fitness keycard before purchasing a membership."
+      );
+      return false;
+    }
+    // allow if hasKeycard === true (or null, but we blocked null above while checking)
+    return true;
+  };
+
+  // Online checkout (Stripe)
   const handleCheckout = async (plan) => {
-    if (!user)   toast.error("Sign in first!");
-    
+    if (!guardRequiresKeycard()) return;
+
     try {
       const res = await fetch("/api/services/membership/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, plan, paymentMethod: "online" }),
+        body: JSON.stringify({
+          userId: user.id,
+          plan,
+          paymentMethod: "online",
+        }),
       });
 
       const data = await res.json().catch(() => {
         throw new Error("Invalid server response");
       });
 
-      // ✅ Specific handling for active membership error
       if (data?.error?.includes("already have an active membership")) {
-        return toast.error("You already have an active membership. Please wait until it expires.");
+        return toast.error(
+          "You already have an active membership. Please wait until it expires."
+        );
       }
 
       if (!res.ok) throw new Error(data?.error || "Checkout failed");
@@ -49,9 +113,9 @@ export default function GymMembershipPage() {
     }
   };
 
-  // ✅ OTC checkout
+  // OTC checkout
   const handleOTCCheckout = async (plan) => {
-    if (!user) return toast.error("Sign in first!");
+    if (!guardRequiresKeycard()) return;
 
     try {
       const res = await fetch("/api/services/membership/checkout", {
@@ -64,9 +128,10 @@ export default function GymMembershipPage() {
         throw new Error("Invalid server response");
       });
 
-      // ✅ Specific handling for active membership error
       if (data?.error?.includes("already have an active membership")) {
-        return toast.error("You already have an active membership. Please wait until it expires.");
+        return toast.error(
+          "You already have an active membership. Please wait until it expires."
+        );
       }
 
       if (!res.ok) throw new Error(data?.error || "OTC Checkout failed");
@@ -89,18 +154,12 @@ export default function GymMembershipPage() {
 
       <Swiper
         modules={[Pagination, Autoplay]}
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: false,
-        }}
+        autoplay={{ delay: 3000, disableOnInteraction: false }}
         spaceBetween={20}
         slidesPerView={1}
         pagination={{ clickable: true }}
         loop={true}
-        breakpoints={{
-          640: { slidesPerView: 2 },
-          1024: { slidesPerView: 4 },
-        }}
+        breakpoints={{ 640: { slidesPerView: 2 }, 1024: { slidesPerView: 4 } }}
         className="w-full px-8"
       >
         {MembershipPlans.map((Membership, index) => (
@@ -142,21 +201,22 @@ export default function GymMembershipPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 mt-4">
+                    {/* NO disabled props—clicks are allowed; guard handles toasts */}
                     <Button
                       variant="secondary"
                       className="text-white w-full"
                       onClick={() => handleCheckout(Membership)}
-                      disabled={!user}
+                      disabled={true}
                     >
-                   {!user? "Please Login First" : "Pay Online"}
+                      Pay Online
+                      Under Maintenance
                     </Button>
                     <Button
                       variant="outlineSecondary"
                       className="w-full text-secondary"
                       onClick={() => handleOTCCheckout(Membership)}
-                      disabled={!user}
                     >
-                       {!user? "Please Login First" : "Pay On the Counter"}
+                      Pay On the Counter
                     </Button>
                   </div>
                 </CardContent>
