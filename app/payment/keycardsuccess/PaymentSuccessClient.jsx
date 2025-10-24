@@ -17,9 +17,7 @@ export default function PaymentSuccessClient({ sessionId }) {
       setLoading(false);
       return;
     }
-
-    // (Optional) Verify the session on your backend here.
-    const timer = setTimeout(() => setLoading(false), 2000);
+    const timer = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(timer);
   }, [sessionId]);
 
@@ -90,19 +88,19 @@ export default function PaymentSuccessClient({ sessionId }) {
               <h3 className="font-bold text-lg text-gray-800">What's Next?</h3>
             </div>
             <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-2">
+              <li className="flex gap-2">
                 <span className="text-blue-600 font-bold">•</span>
                 <span>Your keycard is now active and ready to use</span>
               </li>
-              <li className="flex items-start gap-2">
+              <li className="flex gap-2">
                 <span className="text-blue-600 font-bold">•</span>
                 <span>Access your digital keycard from your profile</span>
               </li>
-              <li className="flex items-start gap-2">
+              <li className="flex gap-2">
                 <span className="text-blue-600 font-bold">•</span>
                 <span>Show your QR code at the gym for entry</span>
               </li>
-              <li className="flex items-start gap-2">
+              <li className="flex gap-2">
                 <span className="text-blue-600 font-bold">•</span>
                 <span>Valid for 1 year from today</span>
               </li>

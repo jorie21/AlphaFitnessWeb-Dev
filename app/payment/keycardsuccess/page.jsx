@@ -1,14 +1,6 @@
-import { Suspense } from "react";
-import PaymentSuccessContent from "./PaymentSuccessContent";
+import PaymentSuccessClient from "./PaymentSuccessClient";
 
-export default function Page() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-blue-600" viewBox="0 0 24 24" />
-      </div>
-    }>
-      <PaymentSuccessContent />
-    </Suspense>
-  );
+export default function Page({ searchParams }) {
+  const sessionId = searchParams?.session_id ?? null;
+  return <PaymentSuccessClient sessionId={sessionId} />;
 }
