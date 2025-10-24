@@ -34,7 +34,7 @@ export default function Topbar() {
         el.scrollIntoView({ behavior: "smooth" });
       }
       history.replaceState(null, "", " ");
-      
+
       // Close mobile menu after navigation
       setOpen(false);
     }
@@ -132,30 +132,15 @@ export default function Topbar() {
             </nav>
 
             {/* Auth Buttons (Mobile) */}
-            <div className="px-6 pb-6 border-b border-white/10">
-              {loading ? (
-                <div className="flex flex-col gap-2">
-                  <div className="h-10 w-full bg-white/20 rounded-md animate-pulse"></div>
-                  <div className="h-10 w-full bg-white/20 rounded-md animate-pulse"></div>
-                </div>
-              ) : session == null ? (
-                <div className="flex flex-col gap-3">
-                  <LoginModal />
-                  <RegistrationModal />
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 py-2">
-                  <ProfileDropdown user={session?.user} logout={logout} mobile />
-                  <div className="flex flex-col">
-                    <span className="text-white font-semibold text-sm">
-                      {session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0]}
-                    </span>
-                    <span className="text-white/60 text-xs">
-                      {session?.user?.email}
-                    </span>
-                  </div>
-                </div>
-              )}
+            <div className="px-4 pb-6 border-t border-white/10">
+              <div className="space-y-3">
+                <ProfileDropdown
+                  user={session?.user}
+                  logout={logout}
+                  className="mt-1"
+                />
+
+              </div>
             </div>
 
             {/* Footer Info */}

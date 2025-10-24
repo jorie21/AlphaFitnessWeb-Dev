@@ -13,8 +13,6 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import Image from "next/image";
-import AlphaFitness from "@/components/Alphafitness";
 import { useRouter } from "next/navigation";
 import { resetPasswordSchema } from "@/app/actions/validation/registerValidation";
 
