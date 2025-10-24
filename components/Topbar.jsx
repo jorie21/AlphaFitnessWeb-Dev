@@ -19,10 +19,12 @@ import LoginModal from "./auth/LoginModal";
 import RegistrationModal from "./auth/RegistrationModal";
 import { useAuth } from "@/context/authContext";
 import ProfileDropdown from "./ProfileDropdown";
+import { useState } from "react";
+
 
 export default function Topbar() {
   const { signOut, session, loading } = useAuth();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleSmoothScroll = (e, path) => {
     if (path.startsWith("#")) {
