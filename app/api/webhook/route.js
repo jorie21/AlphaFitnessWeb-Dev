@@ -83,112 +83,111 @@ export async function POST(req) {
 /* ------------------------
    Keycard Checkout
    ------------------------ */
-async function handleKeycardCheckout(session) {
-  const metadata = session.metadata || {};
+export async function handleKeycardCheckout(session, supabase) {
+  const metadata = session?.metadata || {};
   const uniqueId = metadata.uniqueId || metadata.unique_id;
   const userId = metadata.userId || metadata.user_id;
   const keycardType = metadata.keycardType || metadata.keycard_type || "basic";
 
-  if (!uniqueId || !userId)
+  if (!uniqueId || !userId) {
     throw new Error("Missing uniqueId or userId in metadata");
+  }
 
   if (keycardType === "vip") {
-    // Upgrade existing non-VIP keycard to VIP
+    // --- VIP: UPGRADE & SET 1-YEAR EXPIRATION ---
     const { data: existingCard, error: selectErr } = await supabase
       .from("keycards")
       .select("*")
       .eq("user_id", userId)
-      .neq("type", "vip") // Find non-VIP keycard
+      .neq("type", "vip") // any non-VIP card
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (selectErr) throw new Error(selectErr.message);
-    if (!existingCard)
-      throw new Error("No existing non-VIP keycard to upgrade");
+    if (!existingCard) throw new Error("No existing non-VIP keycard to upgrade");
 
-    // Update the existing keycard to VIP
+    const vipExpires = new Date();
+    vipExpires.setFullYear(vipExpires.getFullYear() + 1);
+
     const { error: updateErr } = await supabase
       .from("keycards")
       .update({
         type: "vip",
         is_vip: true,
-        status: "active", // Ensure it's active
-        expires_at: null, // VIP: no expiration
+        status: "active",
+        expires_at: vipExpires.toISOString(), // 1-year
         updated_at: new Date().toISOString(),
       })
       .eq("id", existingCard.id);
 
     if (updateErr) throw new Error(updateErr.message);
     console.log("✅ Keycard upgraded to VIP:", existingCard.id);
-  } else {
-    // For basic or other types: Insert new keycard
-    const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
-    const qrCodeUrl = await QRCode.toDataURL(qrData);
-
-    const isVip = keycardType === "vip"; // This will be false here since we handled VIP above
-    const expiresAt = isVip ? null : new Date(); // Basic: +1 year
-    if (!isVip) expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-    const { data, error } = await supabase
-      .from("keycards")
-      .insert([
-        {
-          user_id: userId,
-          unique_id: uniqueId,
-          status: "active",
-          type: keycardType,
-          is_vip: isVip,
-          expires_at: expiresAt ? expiresAt.toISOString() : null,
-          qr_code_url: qrCodeUrl,
-        },
-      ])
-      .select();
-
-    if (error) throw new Error(error.message);
-    console.log("✅ Keycard created:", data);
-  }
-}
-
-/* ------------------------
-   Renew Keycard
-   ------------------------ */
-async function handleRenewKeycard(session) {
-  const metadata = session.metadata || {};
-  const userId = metadata.userId || metadata.user_id;
-  if (!userId) throw new Error("Missing userId in renewal metadata");
-
-  const { data: expiredCard, error: selectErr } = await supabase
-    .from("keycards")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "expired")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (selectErr) throw new Error(selectErr.message);
-
-  if (!expiredCard) {
-    console.warn("⚠️ No expired keycard found for renewal:", userId);
     return;
   }
 
-  const newExpiry = new Date();
-  newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+  // --- BASIC (or other non-VIP): INSERT, NO EXPIRATION ---
+  const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
+  const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-  const { error: updateErr } = await supabase
+  const { data, error } = await supabase
     .from("keycards")
-    .update({
-      status: "active",
-      expires_at: newExpiry.toISOString(), // Renewal always sets +1 year (for basic)
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", expiredCard.id);
+    .insert([
+      {
+        user_id: userId,
+        unique_id: uniqueId,
+        status: "active",
+        type: keycardType,        // "basic"
+        is_vip: false,
+        expires_at: null,         // ⬅️ no expiration for BASIC
+        qr_code_url: qrCodeUrl,
+      },
+    ])
+    .select();
 
-  if (updateErr) throw new Error(updateErr.message);
-  console.log("✅ Keycard renewed successfully:", expiredCard.id);
+  if (error) throw new Error(error.message);
+  console.log("✅ Keycard created:", data);
 }
+
+// /* ------------------------
+//    Renew Keycard
+//    ------------------------ */
+// async function handleRenewKeycard(session) {
+//   const metadata = session.metadata || {};
+//   const userId = metadata.userId || metadata.user_id;
+//   if (!userId) throw new Error("Missing userId in renewal metadata");
+
+//   const { data: expiredCard, error: selectErr } = await supabase
+//     .from("keycards")
+//     .select("*")
+//     .eq("user_id", userId)
+//     .eq("status", "expired")
+//     .order("created_at", { ascending: false })
+//     .limit(1)
+//     .maybeSingle();
+
+//   if (selectErr) throw new Error(selectErr.message);
+
+//   if (!expiredCard) {
+//     console.warn("⚠️ No expired keycard found for renewal:", userId);
+//     return;
+//   }
+
+//   const newExpiry = new Date();
+//   newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
+//   const { error: updateErr } = await supabase
+//     .from("keycards")
+//     .update({
+//       status: "active",
+//       expires_at: newExpiry.toISOString(), // Renewal always sets +1 year (for basic)
+//       updated_at: new Date().toISOString(),
+//     })
+//     .eq("id", expiredCard.id);
+
+//   if (updateErr) throw new Error(updateErr.message);
+//   console.log("✅ Keycard renewed successfully:", expiredCard.id);
+// }
 
 /* ------------------------
    Membership Checkout
@@ -242,7 +241,7 @@ async function handleMembershipCheckout(session) {
     .from("memberships")
     .select("*")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .eq("status", "ACTIVE")
     .gt("end_date", now);
 
   if (activeError) throw new Error(activeError.message);

@@ -18,9 +18,11 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
+import { useRouter } from "next/navigation";
 
 export default function GymMembershipPage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   // track keycard availability
   const [hasKeycard, setHasKeycard] = useState(null); // null=unknown
@@ -113,7 +115,6 @@ export default function GymMembershipPage() {
     }
   };
 
-  // OTC checkout
   const handleOTCCheckout = async (plan) => {
     if (!guardRequiresKeycard()) return;
 
@@ -129,14 +130,15 @@ export default function GymMembershipPage() {
       });
 
       if (data?.error?.includes("already have an active membership")) {
-        return toast.error(
-          "You already have an active membership. Please wait until it expires."
-        );
+        return toast.error("You already have an active membership. Please wait until it expires.");
       }
-
       if (!res.ok) throw new Error(data?.error || "OTC Checkout failed");
 
-      toast.success("✅ OTC membership request submitted! Pending approval.");
+      const ref = data?.referenceId;
+      if (!ref) throw new Error("Missing referenceId from server");
+
+      // ✅ Redirect to your receipt page (case-sensitive path!)
+      router.push(`/payment/otcServicess?reference_id=${encodeURIComponent(ref)}&service=membership`);
     } catch (err) {
       console.error("OTC Checkout Error:", err);
       toast.error(err.message || "An unexpected error occurred");
@@ -154,7 +156,7 @@ export default function GymMembershipPage() {
 
       <Swiper
         modules={[Pagination, Autoplay]}
-        autoplay={{ delay: 3000, disableOnInteraction: false }}
+        autoplay={{ delay: 5000, disableOnInteraction: false }}
         spaceBetween={20}
         slidesPerView={1}
         pagination={{ clickable: true }}

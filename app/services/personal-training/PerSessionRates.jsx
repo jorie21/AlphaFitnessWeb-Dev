@@ -134,7 +134,7 @@ export default function PerSessionRates() {
       <Swiper
         modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
-        autoplay={{ delay: 2000 }}
+        autoplay={{ delay: 5000 }}
         loop
         spaceBetween={16}
         breakpoints={{

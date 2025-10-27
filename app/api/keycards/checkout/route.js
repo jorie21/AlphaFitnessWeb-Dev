@@ -8,57 +8,55 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(req) {
   try {
-    // Parse the JSON body from the request
     const { userId, type = "basic" } = await req.json();
-
-    // Validate required fields
     if (!userId) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    // Generate a unique transaction ID for reference
-    const uniqueId = `KEY-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+    const uniqueId = `APF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
 
-    // Define price and product name based on type
-    const isRenewal = type === "renew";
-    const productName = isRenewal
-      ? "Alpha Fitness Keycard Renewal"
-      : "Alpha Fitness Basic Keycard";
-    const amount = isRenewal ? 100 * 100 : 150 * 100; // Convert to centavos
+    // Price + text based on type
+    let productName, description, amount;
+    if (type === "renew") {
+      productName = "Alpha Fitness Keycard Renewal";
+      description = "Extend your keycard access for another year.";
+      amount = 100 * 100;
+    } else if (type === "vip") {
+      productName = "Alpha Fitness VIP Keycard (1-Year)";
+      description = "Upgrade to VIP for 1-year premium access.";
+      amount = 799 * 100;
+    } else {
+      productName = "Alpha Fitness Basic Keycard";
+      description = "Basic keycard with no expiration.";
+      amount = 150 * 100;
+    }
 
-    // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
+      mode: "payment",
       payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
             currency: "php",
-            product_data: {
-              name: productName,
-              description: isRenewal
-                ? "Renew your Alpha Fitness digital keycard for another year."
-                : "Purchase a new Alpha Fitness digital keycard with QR access.",
-            },
+            product_data: { name: productName, description },
             unit_amount: amount,
           },
           quantity: 1,
         },
       ],
-      mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/keycardsuccess?uid=${uniqueId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/services`,
       metadata: {
         uniqueId,
         userId,
-        type: "keycard",   // identify this checkout as keycard-related
-        keycardType: type, // “basic” or “renew” — used by webhook
+        type: "keycard",
+        keycardType: type, // "basic" | "renew" | "vip"
       },
     });
 
-    // Return the checkout URL to frontend
     return NextResponse.json({ url: session.url });
   } catch (err) {
-    console.error("💥 Stripe checkout error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("💥 Stripe checkout error:", err);
+    return NextResponse.json({ error: err.message || "Checkout failed" }, { status: 500 });
   }
 }

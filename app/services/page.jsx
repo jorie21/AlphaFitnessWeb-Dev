@@ -158,7 +158,8 @@ export default function KeycardsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6  max-w-5xl w-full">
+        
         <Card className="border-2 border-gray-700 hover:shadow-xl transition-all rounded-xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-gray-100 rounded-xl w-fit shadow-sm">
@@ -204,7 +205,7 @@ export default function KeycardsPage() {
           </CardFooter>
         </Card>
 
-        <Card className="border-2 border-secondary hover:shadow-xl transition-all rounded-xl">
+        {/* <Card className="border-2 border-secondary hover:shadow-xl transition-all rounded-xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-red-100 rounded-full w-fit shadow-sm">
               <RefreshCcw className="h-8 w-8 text-secondary" />
@@ -237,7 +238,7 @@ export default function KeycardsPage() {
                 : "Renew Now"}
             </Button>
           </CardFooter>
-        </Card>
+        </Card> */}
 
         <Card className="border-2 border-yellow-500 hover:shadow-xl transition-all rounded-xl">
           <CardHeader className="text-center">
