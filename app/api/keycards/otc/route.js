@@ -1,7 +1,8 @@
-//api/keycards/otc/route.js
+// app/api/keycards/otc/route.js
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import QRCode from "qrcode";
+import crypto from "crypto";
 
 export async function POST(req) {
   try {
@@ -11,68 +12,114 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    // Fetch latest keycard for this user
-    const { data: existingCards, error: fetchError } = await supabase
+    // Load user's keycards (latest first)
+    const { data: cards, error: listErr } = await supabase
       .from("keycards")
       .select("*")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .order("created_at", { ascending: false });
 
-    if (fetchError) throw fetchError;
+    if (listErr) throw listErr;
 
-    // Restrict duplicate keycards
-    if (existingCards && existingCards.length > 0) {
-      const currentCard = existingCards[0];
+    const latest = cards?.[0] || null;
+    const hasAny = (cards?.length || 0) > 0;
+    const hasVip = cards?.some(
+      (c) => c.is_vip === true || String(c.type).toLowerCase() === "vip"
+    );
+    const nonVipCard = cards?.find((c) => !c.is_vip) || null;
 
-      if (currentCard.status === "active") {
+    const referenceId = `APF-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
+    // ---------- BASIC (OTC) ----------
+    if (type === "basic") {
+      // Only allowed if user has NO keycard
+      if (hasAny) {
         return NextResponse.json(
-          { error: "You already have an active keycard." },
+          { error: "You already have a keycard." },
           { status: 400 }
         );
       }
 
-      if (currentCard.status === "expired" && type === "basic") {
-        return NextResponse.json(
-          { error: "You already have an expired keycard. Please renew instead of buying new." },
-          { status: 400 }
-        );
-      }
+      const uniqueId = `KEY-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+      const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
+      const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-      if (type === "renew" && currentCard.status !== "expired") {
-        return NextResponse.json(
-          { error: "You can only renew an expired keycard." },
-          { status: 400 }
-        );
-      }
+      const { error: insErr } = await supabase.from("keycards").insert([
+        {
+          user_id: userId,
+          unique_id: uniqueId,
+          status: "pending", // pending until paid
+          type: "basic",
+          is_vip: false,
+          expires_at: null, // Basic = no expiration
+          qr_code_url: qrCodeUrl,
+        },
+      ]);
+      if (insErr) throw insErr;
+
+      return NextResponse.json({
+        message: "Basic keycard created. Pending admin confirmation.",
+        referenceId,
+        uniqueId,
+        url: `/payment/otcServices?reference_id=${referenceId}&service=keycard&id=${uniqueId}`,
+      });
     }
 
-    // Generate new unique key
-    const uniqueId = `KEY-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+    // ---------- VIP (OTC) ----------
+    if (type === "vip") {
+      // Must already have a Basic/non-VIP card; cannot already be VIP
+      if (hasVip) {
+        return NextResponse.json(
+          { error: "You already have a VIP keycard." },
+          { status: 400 }
+        );
+      }
+      if (!nonVipCard) {
+        return NextResponse.json(
+          { error: "VIP upgrade requires an existing Basic keycard." },
+          { status: 400 }
+        );
+      }
+      if (latest && String(latest.status).toLowerCase() === "pending") {
+        return NextResponse.json(
+          { error: "You already have a pending keycard action." },
+          { status: 400 }
+        );
+      }
 
-    // Generate QR code
-    const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
-    const qrCodeUrl = await QRCode.toDataURL(qrData);
+      // Convert existing Basic -> VIP (PENDING + 1-year expiration)
+      const expires = new Date();
+      expires.setFullYear(expires.getFullYear() + 1);
 
-    // Insert pending keycard
-    const { error: insertError } = await supabase.from("keycards").insert([
-      {
-        user_id: userId,
-        unique_id: uniqueId,
-        status: "pending",
-        type,
-        qr_code_url: qrCodeUrl,
-      },
-    ]);
+      const { error: updErr } = await supabase
+        .from("keycards")
+        .update({
+          type: "vip",
+          is_vip: true,
+          status: "pending", // stays pending until cashier approves
+          expires_at: expires.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", nonVipCard.id);
 
-    if (insertError) throw insertError;
+      if (updErr) throw updErr;
 
-    return NextResponse.json({
-      message: "Keycard created. Pending admin confirmation.",
-      uniqueId,
-    });
+      const uniqueId = nonVipCard.unique_id; // ✅ define uniqueId here
+
+      return NextResponse.json({
+        message: "VIP upgrade pending for OTC payment.",
+        referenceId,
+        uniqueId,
+        url: `/payment/otcSuccess?reference_id=${referenceId}&service=keycard&id=${uniqueId}`,
+      });
+    }
+
+    return NextResponse.json({ error: "Unsupported OTC type." }, { status: 400 });
   } catch (error) {
     console.error("❌ OTC Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed" },
+      { status: 500 }
+    );
   }
 }

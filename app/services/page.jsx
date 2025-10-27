@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Check, RefreshCcw, Star } from "lucide-react"; // Added Star for VIP icon
-import { keycardFeature, keycardRenew } from "@/constant/features";
+import { keycardFeature, keycardRenew, vipFeature } from "@/constant/features";
 import { toast } from "sonner";
 import { useAuth } from "@/context/authContext";
 import { useRouter } from "next/navigation";
@@ -254,7 +254,7 @@ export default function KeycardsPage() {
           <CardContent className="text-center space-y-6">
             <div className="text-4xl font-bold text-gray-900">₱799</div>
             <p className="text-sm text-gray-500">One-time upgrade fee</p>
-            {keycardFeature.map((f, i) => (
+            {vipFeature.map((f, i) => (
               <div key={i} className="flex items-center gap-3">
                 <Check className="h-5 w-5 text-green-500" /> {f}
               </div>

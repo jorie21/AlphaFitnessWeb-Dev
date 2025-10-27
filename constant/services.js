@@ -47,7 +47,7 @@ export const MembershipPlans =[
 export const GroupClasses = 
     ["Boxing", "Muay Thai", "M.M.A"]
 
-export const timeSlots = ["4:00 PM - 6:00 PM", "6:30 PM - 8:30 PM"]
+export const timeSlots = ["9:00 AM - 11:00 AM", "4:00 PM - 6:00 PM", "6:30 PM - 8:30 PM"]
 
 //app/constant/services.js
 export const packageSession = [

@@ -1,4 +1,4 @@
-// api/service/checkout/route.js
+// app/api/service/checkout/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -15,15 +15,14 @@ export async function POST(req) {
 
     const uniqueId = `APF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
 
-    // Price + text based on type
     let productName, description, amount;
     if (type === "renew") {
       productName = "Alpha Fitness Keycard Renewal";
-      description = "Extend your keycard access for another year.";
+      description = "Extend your Basic keycard (no expiration change).";
       amount = 100 * 100;
     } else if (type === "vip") {
       productName = "Alpha Fitness VIP Keycard (1-Year)";
-      description = "Upgrade to VIP for 1-year premium access.";
+      description = "Upgrade your existing Basic keycard to VIP. Active for 1 year after payment.";
       amount = 799 * 100;
     } else {
       productName = "Alpha Fitness Basic Keycard";

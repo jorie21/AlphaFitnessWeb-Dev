@@ -83,23 +83,24 @@ export async function POST(req) {
 /* ------------------------
    Keycard Checkout
    ------------------------ */
-export async function handleKeycardCheckout(session, supabase) {
+export async function handleKeycardCheckout(session) {
   const metadata = session?.metadata || {};
   const uniqueId = metadata.uniqueId || metadata.unique_id;
   const userId = metadata.userId || metadata.user_id;
-  const keycardType = metadata.keycardType || metadata.keycard_type || "basic";
+  const keycardTypeRaw = metadata.keycardType || metadata.keycard_type || "basic";
+  const keycardType = String(keycardTypeRaw).toLowerCase();
 
   if (!uniqueId || !userId) {
     throw new Error("Missing uniqueId or userId in metadata");
   }
 
   if (keycardType === "vip") {
-    // --- VIP: UPGRADE & SET 1-YEAR EXPIRATION ---
+    // ONLINE success: upgrade existing Basic -> VIP ACTIVE (1 year)
     const { data: existingCard, error: selectErr } = await supabase
       .from("keycards")
       .select("*")
       .eq("user_id", userId)
-      .neq("type", "vip") // any non-VIP card
+      .neq("type", "vip")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -115,40 +116,36 @@ export async function handleKeycardCheckout(session, supabase) {
       .update({
         type: "vip",
         is_vip: true,
-        status: "active",
-        expires_at: vipExpires.toISOString(), // 1-year
+        status: "active",                       // active immediately for online
+        expires_at: vipExpires.toISOString(),   // 1-year
         updated_at: new Date().toISOString(),
       })
       .eq("id", existingCard.id);
 
     if (updateErr) throw new Error(updateErr.message);
-    console.log("✅ Keycard upgraded to VIP:", existingCard.id);
+    console.log("✅ Keycard upgraded to VIP (online):", existingCard.id);
     return;
   }
 
-  // --- BASIC (or other non-VIP): INSERT, NO EXPIRATION ---
+  // ONLINE success: Basic -> create ACTIVE, no expiration
   const qrData = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${uniqueId}`;
   const qrCodeUrl = await QRCode.toDataURL(qrData);
 
-  const { data, error } = await supabase
-    .from("keycards")
-    .insert([
-      {
-        user_id: userId,
-        unique_id: uniqueId,
-        status: "active",
-        type: keycardType,        // "basic"
-        is_vip: false,
-        expires_at: null,         // ⬅️ no expiration for BASIC
-        qr_code_url: qrCodeUrl,
-      },
-    ])
-    .select();
+  const { error: insertErr } = await supabase.from("keycards").insert([
+    {
+      user_id: userId,
+      unique_id: uniqueId,
+      status: "active",
+      type: "basic",
+      is_vip: false,
+      expires_at: null,
+      qr_code_url: qrCodeUrl,
+    },
+  ]);
 
-  if (error) throw new Error(error.message);
-  console.log("✅ Keycard created:", data);
+  if (insertErr) throw insertErr;
+  console.log("✅ Basic keycard created (online).");
 }
-
 // /* ------------------------
 //    Renew Keycard
 //    ------------------------ */

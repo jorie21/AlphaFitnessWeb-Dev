@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, AlertCircle, Calendar, CreditCard, Star } from "lucide-react";
 import Image from "next/image";
@@ -41,6 +43,30 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
 
   const getKeycardTypeLabel = (keycard) => (keycard.is_vip ? "VIP Keycard" : "Basic Keycard");
 
+  // ---- NEW: compute "Valid until" exactly as requested ----
+  const addYears = (baseDate, years = 1) => {
+    const d = new Date(baseDate || Date.now());
+    d.setFullYear(d.getFullYear() + years);
+    return d;
+  };
+
+  const getValidUntil = (keycard) => {
+    // BASIC: no expiration
+    if (!keycard?.is_vip) return "No Expiration";
+
+    // VIP: 1 year only
+    // Prefer server-provided expires_at; otherwise compute 1y from activated_at/created_at
+    if (keycard?.expires_at) return formatDate(keycard.expires_at);
+
+    const base =
+      keycard?.activated_at ||
+      keycard?.created_at ||
+      new Date().toISOString();
+
+    return formatDate(addYears(base, 1));
+  };
+  // --------------------------------------------------------
+
   if (!activeKeycard) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -55,9 +81,7 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
-            <Button onClick={onClose} variant="outline">
-              Close
-            </Button>
+            <Button onClick={onClose} variant="outline">Close</Button>
             <Button
               onClick={() => {
                 onClose();
@@ -74,7 +98,6 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* keep print classes minimal; we’ll control print via global CSS */}
       <DialogContent className="w-full max-h-[90vh] overflow-x-hidden">
         <DialogHeader className="print-hidden">
           <DialogTitle className="text-xl sm:text-2xl font-russo flex items-center justify-between pr-8">
@@ -160,13 +183,16 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
                     <span>VALID UNTIL</span>
                   </div>
                   <p className="text-base sm:text-lg font-semibold">
-                    {activeKeycard.is_vip ? "Lifetime Access" : formatDate(activeKeycard.expires_at)}
+                    {getValidUntil(activeKeycard)}
                   </p>
                 </div>
 
                 <div className="pt-2 border-t border-gray-700">
                   <p className="text-[10px] sm:text-xs text-gray-400">
-                    Type: <span className="text-white font-semibold">{getKeycardTypeLabel(activeKeycard)}</span>
+                    Type:{" "}
+                    <span className="text-white font-semibold">
+                      {getKeycardTypeLabel(activeKeycard)}
+                    </span>
                   </p>
                   <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
                     Issued: <span className="text-white">{formatDate(activeKeycard.created_at)}</span>
@@ -189,7 +215,9 @@ export default function DigitalKeycardModal({ isOpen, onClose, keycards }) {
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">2.</span>
-                <span>Keep your keycard valid by renewing before expiration (VIP keycards never expire).</span>
+                <span>
+                  Basic keycards never expire. VIP keycards are valid for 1 year from activation.
+                </span>
               </li>
             </ul>
 
