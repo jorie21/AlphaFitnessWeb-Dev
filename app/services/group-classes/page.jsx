@@ -22,50 +22,43 @@ export default function GroupClassesPage() {
   const [hasKeycard, setHasKeycard] = useState(null);
   const [checkingKeycard, setCheckingKeycard] = useState(false);
 
-  useEffect(() => {
-    const checkKeycard = async () => {
-      if (!user) {
-        setHasKeycard(null);
-        return;
-      }
-      setCheckingKeycard(true);
-      try {
-        const res = await fetch("/api/keycards/get", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.id, type: "check" }),
-        });
-        const data = await res.json().catch(() => ({}));
-        const any = Array.isArray(data?.keycards) && data.keycards.length > 0;
-        setHasKeycard(any);
-      } catch (e) {
-        console.error("Keycard check failed:", e);
-        setHasKeycard(false);
-      } finally {
-        setCheckingKeycard(false);
-      }
-    };
-
-    checkKeycard();
-  }, [user]);
-
-  const guardRequiresKeycard = () => {
-    if (!user) {
-      toast.error("Please log in first.");
-      return false;
+useEffect(() => {
+  const checkKeycard = async () => {
+    if (!user) { setHasKeycard(null); return; }
+    setCheckingKeycard(true);
+    try {
+      const res = await fetch("/api/keycards/get", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, type: "check" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const anyActive =
+        Array.isArray(data?.keycards) &&
+        data.keycards.some(k => String(k.status).toLowerCase() === "active");
+      setHasKeycard(anyActive);
+    } catch (e) {
+      console.error("Keycard check failed:", e);
+      setHasKeycard(false);
+    } finally {
+      setCheckingKeycard(false);
     }
-    if (checkingKeycard || hasKeycard === null) {
-      toast.message("Checking your keycard status…");
-      return false;
-    }
-    if (hasKeycard === false) {
-      toast.error(
-        "You need an Alpha Fitness keycard before purchasing Group Classes."
-      );
-      return false;
-    }
-    return true;
   };
+  checkKeycard();
+}, [user]);
+
+// keep your guard, message now implies ACTIVE
+const guardRequiresKeycard = () => {
+  if (!user) { toast.error("Please log in first."); return false; }
+  if (checkingKeycard || hasKeycard === null) {
+    toast.message("Checking your keycard status…"); return false;
+  }
+  if (hasKeycard === false) {
+    toast.error("You need an ACTIVE Alpha Fitness keycard before purchasing Group Classes.");
+    return false;
+  }
+  return true;
+};
 
   const sanitizePrice = (val) =>
     typeof val === "number" ? val : Number(String(val).replace(/[^0-9.]/g, ""));
