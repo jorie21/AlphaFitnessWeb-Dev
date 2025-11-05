@@ -30,7 +30,7 @@ export async function POST(req) {
         .from("memberships")
         .select("id")
         .eq("user_id", userId)
-        .eq("status", "ACTIVE")
+        .eq("status", "active")
         .gt("end_date", now);  // Ensure end_date is in the future
 
       if (activeError) throw new Error(activeError.message);
