@@ -182,18 +182,17 @@ export default function KeycardsPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button
-              disabled={true}       //{loading || !user || authLoading}
+              disabled={loading || !user || authLoading}
               onClick={() => handlePurchase("basic")}
               className="w-full"
             >
-              Pay Online
-              Under Maintenance
-            </Button>
-              {/* {loading
+              {loading
                 ? "Processing..."
                 : !user
                 ? "Login to Purchase"
-                : "Pay Online (₱150)"} */}
+                : "Pay Online (₱150)"}
+
+            </Button>
             <Button
               disabled={loading || !user || authLoading}
               onClick={() => handleOTCPurchase("basic")}
@@ -266,18 +265,17 @@ export default function KeycardsPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button
-              disabled={true}  //{isVipDisabled}
+        
               onClick={() => handlePurchase("vip")}
               className="w-full"
             >
-              Pay Online
-              Under Maintenance
-            </Button>
-              {/* {isVipDisabled
+              {isVipDisabled
                 ? "Requires Existing Keycard"
                 : loading
                 ? "Processing..."
-                : "Pay Online (₱799)"} */}
+                : "Pay Online (₱799)"}
+
+            </Button>
             <Button
               disabled={isVipDisabled}
               onClick={() => handleOTCPurchase("vip")}

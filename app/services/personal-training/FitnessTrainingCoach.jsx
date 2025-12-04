@@ -186,10 +186,9 @@ export default function FitnessTrainingCoach() {
                         "online"
                       )
                     }
-                    disabled={true}
+                 
                   >
-                    Pay Online <br />
-                    Under Maintenance
+                    Pay Online
                   </Button>
                 </div>
 

@@ -208,10 +208,10 @@ export default function PackageDeals() {
                         "online"
                       )
                     }
-                    disabled={true}
+                
                   >
                     Pay Online
-                    Under Maintenance
+ 
                   </Button>
                 </div>
 

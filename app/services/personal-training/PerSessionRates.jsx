@@ -178,10 +178,10 @@ export default function PerSessionRates() {
                         "online"
                       )
                     }
-                    disabled={true}
+                
                   >
                     Pay Online
-                    Under Maintenance
+    
                   </Button>
                 </div>
 

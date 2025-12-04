@@ -191,10 +191,8 @@ const guardRequiresKeycard = () => {
                   onClick={() => handleCheckout("online")}
                   variant="secondary"
                   className="text-white w-full text-sm sm:text-base"
-                  disabled={true}
                 >
                   Pay Online
-                  Under Maintenance
                 </Button>
 
                 <Button

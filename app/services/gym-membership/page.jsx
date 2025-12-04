@@ -100,10 +100,8 @@ export default function GymMembershipPage() {
         throw new Error("Invalid server response");
       });
 
-      if (data?.error?.includes("already have an active membership")) {
-        return toast.error(
-          "You already have an active membership. Please wait until it expires."
-        );
+       if (data?.error?.includes("already have an active membership")) {
+        return toast.error("You already have an active membership. Please wait until it expires.");
       }
 
       if (!res.ok) throw new Error(data?.error || "Checkout failed");
@@ -208,10 +206,10 @@ export default function GymMembershipPage() {
                       variant="secondary"
                       className="text-white w-full"
                       onClick={() => handleCheckout(Membership)}
-                      disabled={true}
+                     
                     >
                       Pay Online
-                      Under Maintenance
+            
                     </Button>
                     <Button
                       variant="outlineSecondary"

@@ -21,26 +21,38 @@ export async function POST(req) {
 
     const price = Number(plan.Price.replace(/[^\d]/g, ""));
     const plan_title = "Membership";
-    const referenceId = `APF-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;  // Improved random ID
+    const referenceId = `APF-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
+    // =====================================
+    // 🔒 UNIVERSAL CHECK (OTC + ONLINE)
+    // Block if user already has active membership
+    // Case-insensitive + must not be expired
+    // =====================================
+    const now = new Date().toISOString();
+    const { data: activeMemberships, error: activeError } = await supabase
+      .from("memberships")
+      .select("id")
+      .eq("user_id", userId)
+      .ilike("status", "active")        // ⬅⬅⬅ BEST FIX (case-insensitive)
+      .gt("end_date", now);             // ⬅ must still be valid
+
+    if (activeError) throw new Error(activeError.message);
+
+    if (activeMemberships && activeMemberships.length > 0) {
+      return NextResponse.json(
+        { error: "You already have an active membership. Please wait until it expires." },
+        { status: 400 }
+      );
+    }
+    // =====================================
+    // END OF ACTIVE CHECK
+    // =====================================
+
+
+    // =====================================
+    // 🔵 OTC LOGIC
+    // =====================================
     if (paymentMethod === "otc") {
-      // _______Check for active membership_______
-      const now = new Date().toISOString();
-      const { data: activeMemberships, error: activeError } = await supabase
-        .from("memberships")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .gt("end_date", now);  // Ensure end_date is in the future
-
-      if (activeError) throw new Error(activeError.message);
-      if (activeMemberships && activeMemberships.length > 0) {
-        return NextResponse.json(
-          { error: "You already have an active membership. Please wait until it expires." },
-          { status: 400 }
-        );
-      }
-
       const monthsToAdd = plan.title.includes("12")
         ? 12
         : plan.title.includes("6")
@@ -48,17 +60,19 @@ export async function POST(req) {
         : plan.title.includes("3")
         ? 3
         : 1;
+
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + monthsToAdd);
+
       const daysLeft = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 
       // Find active keycard
       const { data: keycardData, error: keycardError } = await supabase
         .from("keycards")
         .select("id")
+        .ilike("status", "active")
         .eq("user_id", userId)
-        .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -91,7 +105,10 @@ export async function POST(req) {
       });
     }
 
-    // Online Logic (Stripe) remains unchanged
+
+    // =====================================
+    // 🔵 ONLINE (STRIPE) LOGIC (unchanged)
+    // =====================================
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -121,6 +138,7 @@ export async function POST(req) {
     });
 
     return NextResponse.json({ url: session.url, referenceId });
+
   } catch (err) {
     console.error("Checkout Error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

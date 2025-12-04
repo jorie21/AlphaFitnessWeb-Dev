@@ -146,45 +146,45 @@ export async function handleKeycardCheckout(session) {
   if (insertErr) throw insertErr;
   console.log("✅ Basic keycard created (online).");
 }
-// /* ------------------------
-//    Renew Keycard
-//    ------------------------ */
-// async function handleRenewKeycard(session) {
-//   const metadata = session.metadata || {};
-//   const userId = metadata.userId || metadata.user_id;
-//   if (!userId) throw new Error("Missing userId in renewal metadata");
+/* ------------------------
+   Renew Keycard
+   ------------------------ */
+async function handleRenewKeycard(session) {
+  const metadata = session.metadata || {};
+  const userId = metadata.userId || metadata.user_id;
+  if (!userId) throw new Error("Missing userId in renewal metadata");
 
-//   const { data: expiredCard, error: selectErr } = await supabase
-//     .from("keycards")
-//     .select("*")
-//     .eq("user_id", userId)
-//     .eq("status", "expired")
-//     .order("created_at", { ascending: false })
-//     .limit(1)
-//     .maybeSingle();
+  const { data: expiredCard, error: selectErr } = await supabase
+    .from("keycards")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "expired")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-//   if (selectErr) throw new Error(selectErr.message);
+  if (selectErr) throw new Error(selectErr.message);
 
-//   if (!expiredCard) {
-//     console.warn("⚠️ No expired keycard found for renewal:", userId);
-//     return;
-//   }
+  if (!expiredCard) {
+    console.warn("⚠️ No expired keycard found for renewal:", userId);
+    return;
+  }
 
-//   const newExpiry = new Date();
-//   newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+  const newExpiry = new Date();
+  newExpiry.setFullYear(newExpiry.getFullYear() + 1);
 
-//   const { error: updateErr } = await supabase
-//     .from("keycards")
-//     .update({
-//       status: "active",
-//       expires_at: newExpiry.toISOString(), // Renewal always sets +1 year (for basic)
-//       updated_at: new Date().toISOString(),
-//     })
-//     .eq("id", expiredCard.id);
+  const { error: updateErr } = await supabase
+    .from("keycards")
+    .update({
+      status: "active",
+      expires_at: newExpiry.toISOString(), // Renewal always sets +1 year (for basic)
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", expiredCard.id);
 
-//   if (updateErr) throw new Error(updateErr.message);
-//   console.log("✅ Keycard renewed successfully:", expiredCard.id);
-// }
+  if (updateErr) throw new Error(updateErr.message);
+  console.log("✅ Keycard renewed successfully:", expiredCard.id);
+}
 
 /* ------------------------
    Membership Checkout

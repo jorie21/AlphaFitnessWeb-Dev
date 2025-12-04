@@ -196,13 +196,7 @@ export default function ProfileHeader() {
 
           {/* right Profile */}
           <div className="flex justify-center md:justify-end">
-            <Button
-              variant="secondary"
-              className="font-arone font-bold text-sm text-white flex items-center gap-2"
-            >
-              <SquarePen className="w-4 h-4" />
-              Edit Profile
-            </Button>
+           
           </div>
         </div>
       </section>
